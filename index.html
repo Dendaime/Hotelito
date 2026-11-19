@@ -303,6 +303,16 @@ input::placeholder{color:#9aa8ad}
 .summaryHeaderControls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .summarySortSelect{padding:7px 11px;font-size:12.5px;font-weight:700;border-radius:9px;background:var(--panel2);border:1px solid var(--line);color:var(--text)}
 
+/* CONCILIACIÓN LISTADO SISTEMA */
+.sysKpiBar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.sysKpiBtn{background:var(--panel2);color:var(--text);border:1.5px solid var(--line);border-radius:10px;padding:7px 12px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.sysKpiBtn.active{background:var(--accent);color:#06201f;border-color:var(--accent)}
+.sysKpiCount{background:#ffffffcc;color:var(--text);padding:1px 7px;border-radius:99px;font-size:11px;font-weight:800}
+.sysToolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.sysToolbar input{flex:1;min-width:190px;padding:9px 11px;font-size:13px}
+.sysCatInput{width:140px;padding:5px 8px;font-size:12px;border-radius:8px}
+.sysRowResolved{opacity:.65;background:#f4fbf6}
+
 @media(max-width:1050px){
  .parcialForm{grid-template-columns:1fr 1fr}
  .parcialSubmitCol{padding-top:21px}
@@ -608,12 +618,14 @@ input::placeholder{color:#9aa8ad}
     <button class="secondary" id="refresh">Actualizar</button>
     <button id="newArticle" hidden>+ Nuevo artículo</button>
     <div class="dropdown" id="loadPhotosWrap" hidden>
-     <button type="button" class="secondary" id="loadPhotosMenuBtn">Cargar fotos ▾</button>
+     <button type="button" class="secondary" id="loadPhotosMenuBtn">Cargas ▾</button>
      <div class="dropdownMenu" id="loadPhotosMenu">
+      <button type="button" class="dropdownItem" id="importSystemListBtn">Listado sistema</button>
       <button type="button" class="dropdownItem" id="bulkPhotos">Carga masiva de fotos</button>
       <button type="button" class="dropdownItem" id="bulkFolder">Cargar carpeta</button>
      </div>
     </div>
+    <input id="systemListInput" type="file" accept=".xlsx,.xls,.csv" hidden>
     <button type="button" class="secondary" id="exportCatalogoExcelBtn">Excel</button>
     <button type="button" class="secondary" id="downloadAllZipBtn" hidden>↓ Fotos (.zip)</button>
     <input id="bulkInput" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple hidden>
@@ -1486,6 +1498,51 @@ input::placeholder{color:#9aa8ad}
  </div>
 </div>
 
+<div id="sysReconcileModal" class="overlay">
+ <div class="dialog wide" style="width:min(1120px,100%)">
+  <button class="secondary closeDialog" data-close="sysReconcileModal">Cerrar</button>
+  <h2>Conciliación: Maestro Hotelito vs. Listado Sistema</h2>
+  <p id="sysReconcileMeta" style="margin-bottom:6px">Subí un archivo Excel o CSV de 2 columnas (Columna 1: Código, Columna 2: Descripción).</p>
+
+  <div class="sysKpiBar" id="sysKpiBar"></div>
+
+  <div class="sysToolbar">
+   <input id="sysReconcileSearch" placeholder="Buscar por código o descripción…">
+   <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+    <label for="sysDefaultCat" style="margin:0;font-size:12px;color:var(--muted)">Categoría por defecto (altas):</label>
+    <input id="sysDefaultCat" list="preCatSuggestions" value="Sin categoría" style="width:175px;flex:0 0 auto;padding:8px 10px;font-size:12.5px">
+   </div>
+  </div>
+
+  <div class="tablewrap" style="max-height:48vh">
+   <table style="min-width:780px">
+    <thead>
+     <tr>
+      <th>Estado / Leyenda</th>
+      <th>Código Hotelito</th>
+      <th>Descripción Hotelito</th>
+      <th>Código Sistema</th>
+      <th>Descripción Sistema</th>
+      <th>Acción</th>
+     </tr>
+    </thead>
+    <tbody id="sysReconcileRows"></tbody>
+   </table>
+   <div class="empty" id="sysReconcileEmpty" style="padding:24px" hidden>No hay registros en este filtro.</div>
+  </div>
+
+  <div class="dialogActions" style="justify-content:space-between">
+   <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button type="button" id="sysExportExcelBtn">↓ Exportar conciliación (Excel)</button>
+    <button type="button" class="secondary" id="sysCreateAllMissingBtn" hidden>+ Crear todos los faltantes</button>
+    <button type="button" class="secondary" id="sysReloadFileBtn">Cargar otro archivo</button>
+   </div>
+   <button type="button" class="secondary" data-close="sysReconcileModal">Cerrar</button>
+  </div>
+  <p id="sysReconcileError" class="error"></p>
+ </div>
+</div>
+
 <div id="bulkModal" class="overlay">
  <div class="dialog">
   <button class="secondary closeDialog" data-close="bulkModal">Cerrar</button>
@@ -1608,7 +1665,8 @@ const IDB_NAME='hotelito_offline_db';
 const IDB_VERSION=1;
 let idbPromise=null;
 
-function openOfflineDB(){
+function openOfflineDB(forceNew=false){
+ if(forceNew)idbPromise=null;
  if(idbPromise)return idbPromise;
  idbPromise=new Promise((resolve,reject)=>{
   const req=indexedDB.open(IDB_NAME,IDB_VERSION);
@@ -1619,51 +1677,66 @@ function openOfflineDB(){
    if(!db.objectStoreNames.contains('sync_queue'))db.createObjectStore('sync_queue',{keyPath:'op_id'});
    if(!db.objectStoreNames.contains('photo_queue'))db.createObjectStore('photo_queue',{keyPath:'photo_op_id'});
   };
-  req.onsuccess=()=>resolve(req.result);
-  req.onerror=()=>reject(req.error);
+  req.onsuccess=()=>{
+   const db=req.result;
+   db.onclose=()=>{idbPromise=null;};
+   db.onversionchange=()=>{try{db.close();}catch{} idbPromise=null;};
+   resolve(db);
+  };
+  req.onerror=()=>{idbPromise=null;reject(req.error);};
  });
  return idbPromise;
 }
 
+async function withIdbRetry(fn){
+ try{
+  const db=await openOfflineDB();
+  return await fn(db);
+ }catch(err){
+  const msg=String(err?.message||err||'');
+  if(err?.name==='InvalidStateError' || msg.includes('closing') || msg.includes('closed')){
+   const db=await openOfflineDB(true);
+   return await fn(db);
+  }
+  throw err;
+ }
+}
+
 async function idbGet(store,key){
- const db=await openOfflineDB();
- return new Promise((resolve,reject)=>{
+ return withIdbRetry(db=>new Promise((resolve,reject)=>{
   const tx=db.transaction(store,'readonly');
   const req=tx.objectStore(store).get(key);
   req.onsuccess=()=>resolve(req.result);
   req.onerror=()=>reject(req.error);
- });
+ }));
 }
 
 async function idbPut(store,val,key=undefined){
- const db=await openOfflineDB();
- return new Promise((resolve,reject)=>{
+ return withIdbRetry(db=>new Promise((resolve,reject)=>{
   const tx=db.transaction(store,'readwrite');
   const os=tx.objectStore(store);
   const req=key!==undefined?os.put(val,key):os.put(val);
   req.onsuccess=()=>resolve(req.result);
   req.onerror=()=>reject(req.error);
- });
+ }));
 }
 
 async function idbDelete(store,key){
- const db=await openOfflineDB();
- return new Promise((resolve,reject)=>{
+ return withIdbRetry(db=>new Promise((resolve,reject)=>{
   const tx=db.transaction(store,'readwrite');
   const req=tx.objectStore(store).delete(key);
   req.onsuccess=()=>resolve();
   req.onerror=()=>reject(req.error);
- });
+ }));
 }
 
 async function idbGetAll(store){
- const db=await openOfflineDB();
- return new Promise((resolve,reject)=>{
+ return withIdbRetry(db=>new Promise((resolve,reject)=>{
   const tx=db.transaction(store,'readonly');
   const req=tx.objectStore(store).getAll();
   req.onsuccess=()=>resolve(req.result||[]);
   req.onerror=()=>reject(req.error);
- });
+ }));
 }
 
 async function getPendingQueues(){
@@ -4050,8 +4123,10 @@ function buildRecuentoConsolidatedItems(raList,parcialesList,prealtasList,sortMo
   const total=ps.reduce((acc,p)=>acc+Number(p.cantidad||0),0);
   out.push({
    kind:'catalogo',
+   prealtaId:null,
    codigo:ra.articulo_codigo,
    descripcion:art?.descripcion||'(Artículo no encontrado en catálogo)',
+   descripcionOriginal:'',
    categoria:art?.categoria||'Sin categoría',
    esPrealta:'No',
    estadoPrealta:'Catalogado',
@@ -4066,20 +4141,25 @@ function buildRecuentoConsolidatedItems(raList,parcialesList,prealtasList,sortMo
   const pa=prealtasList.find(x=>x.id===ra.prealta_id);
   const ps=parcialesList.filter(p=>p.recuento_articulo_id===ra.id);
   if(!pa||!ps.length)return;
+  const linkedArt=pa.articulo_codigo?all.find(x=>x.codigo===pa.articulo_codigo):null;
   const rawCat=String(pa.categoria||'');
   const isDiscarded=rawCat.startsWith('[DESCARTADA]');
   const cleanCat=rawCat.replace(/^\[DESCARTADA\]\s*/,'').trim()||'Sin categoría';
+  const finalDesc=linkedArt?.descripcion||pa.descripcion;
+  const finalCat=linkedArt?.categoria||cleanCat;
   const total=ps.reduce((acc,p)=>acc+Number(p.cantidad||0),0);
   out.push({
    kind:'prealta',
+   prealtaId:pa.id,
    codigo:pa.articulo_codigo||'PRE-ALTA',
-   descripcion:pa.descripcion,
-   categoria:cleanCat,
+   descripcion:finalDesc,
+   descripcionOriginal:pa.descripcion||'',
+   categoria:finalCat,
    esPrealta:'Sí',
    estadoPrealta:isDiscarded?'solo en recuento':pa.estado,
    parciales:ps,
    total:Math.round(total*1000)/1000,
-   sortKey:'ZZZ_'+pa.descripcion,
+   sortKey:pa.articulo_codigo||('ZZZ_'+finalDesc),
    lastActivity:latestTsOf(ps)
   });
  });
@@ -4158,7 +4238,7 @@ function generateExcelForSingleRecuento(rec,items){
   ['Estado:',rec.estado.toUpperCase()],
   ['Fecha de cierre:',rec.cerrado_en?formatDate(rec.cerrado_en):'—'],
   [],
-  ['Código','Descripción','Categoría','Cantidad Total','Cant. Parciales','Es Pre-alta','Estado Pre-alta']
+  ['Código','Descripción','Categoría','Cantidad Total','Cant. Parciales','Es Pre-alta','Estado Pre-alta','Descripción Original (Pre-alta)']
  ];
 
  const resumenBody=items.map(it=>[
@@ -4168,12 +4248,13 @@ function generateExcelForSingleRecuento(rec,items){
   it.total,
   it.parciales.length,
   it.esPrealta,
-  it.estadoPrealta
+  it.estadoPrealta,
+  it.esPrealta==='Sí'?(it.descripcionOriginal||''):''
  ]);
 
  const wsResumen=XLSX.utils.aoa_to_sheet([...resumenHeader,...resumenBody]);
  wsResumen['!cols']=[
-  {wch:18},{wch:44},{wch:24},{wch:16},{wch:15},{wch:13},{wch:18}
+  {wch:18},{wch:44},{wch:24},{wch:16},{wch:15},{wch:13},{wch:18},{wch:40}
  ];
  XLSX.utils.book_append_sheet(wb,wsResumen,'Resumen');
 
@@ -4184,7 +4265,7 @@ function generateExcelForSingleRecuento(rec,items){
   ['Fecha de creación:',formatDate(rec.creado_en)],
   ['Estado:',rec.estado.toUpperCase()],
   [],
-  ['Código','Artículo','Categoría','Es Pre-alta','N° Parcial','Nombre / Sector','Expresión Original','Cantidad Calculada','Observación','Fecha y Hora','Auditor/Auditores']
+  ['Código','Artículo','Categoría','Es Pre-alta','Descripción Original (Pre-alta)','N° Parcial','Nombre / Sector','Expresión Original','Cantidad Calculada','Observación','Fecha y Hora','Auditor/Auditores']
  ];
 
  const detalleBody=[];
@@ -4195,6 +4276,7 @@ function generateExcelForSingleRecuento(rec,items){
     it.descripcion,
     it.categoria,
     it.esPrealta,
+    it.esPrealta==='Sí'?(it.descripcionOriginal||''):'',
     p.numero,
     p.nombre?.trim()?p.nombre.trim():`Parcial ${p.numero}`,
     p.expresion,
@@ -4208,7 +4290,7 @@ function generateExcelForSingleRecuento(rec,items){
 
  const wsDetalle=XLSX.utils.aoa_to_sheet([...detalleHeader,...detalleBody]);
  wsDetalle['!cols']=[
-  {wch:16},{wch:40},{wch:22},{wch:12},{wch:11},{wch:22},{wch:20},{wch:18},{wch:30},{wch:20},{wch:22}
+  {wch:16},{wch:40},{wch:22},{wch:12},{wch:38},{wch:11},{wch:22},{wch:20},{wch:18},{wch:30},{wch:20},{wch:22}
  ];
  XLSX.utils.book_append_sheet(wb,wsDetalle,'Detalle de parciales');
 
@@ -4864,7 +4946,11 @@ function handleRecArtSearch(){
  const isOpen=activeRecuento?.estado==='abierto';
 
  const preMatches=workPrealtas
-  .filter(pa=>[pa.descripcion,pa.categoria,'pre-alta','prealta'].some(v=>(v||'').toLocaleLowerCase('es').includes(q)))
+  .filter(pa=>{
+   const linkedArt=pa.articulo_codigo?all.find(x=>x.codigo===pa.articulo_codigo):null;
+   return [pa.descripcion,pa.categoria,pa.articulo_codigo,linkedArt?.descripcion,linkedArt?.categoria,'pre-alta','prealta']
+    .some(v=>(v||'').toLocaleLowerCase('es').includes(q));
+  })
   .slice(0,10);
 
  const catMatches=all
@@ -4878,14 +4964,18 @@ function handleRecArtSearch(){
 
  if(preMatches.length){
   html+=preMatches.map(pa=>{
+   const linkedArt=pa.articulo_codigo?all.find(x=>x.codigo===pa.articulo_codigo):null;
+   const displayDesc=linkedArt?.descripcion||pa.descripcion;
+   const displayCat=linkedArt?.categoria||String(pa.categoria||'').replace(/^\[DESCARTADA\]\s*/,'').trim()||'Sin categoría';
+   const origNote=(linkedArt && linkedArt.descripcion!==pa.descripcion)?` · Anotado orig.: "${pa.descripcion}"`:'';
    const ra=workRecuentoArticulos.find(x=>x.prealta_id===pa.id);
    const subParciales=ra?workParciales.filter(p=>p.recuento_articulo_id===ra.id):[];
    const total=subParciales.reduce((acc,p)=>acc+Number(p.cantidad||0),0);
    return `
     <div class="searchItem" data-pick-prealta="${esc(pa.id)}">
      <div>
-      <div><span class="pill prealta">PRE-ALTA</span> · <strong>${esc(pa.descripcion)}</strong></div>
-      <div style="font-size:12px;color:var(--muted)">${esc(pa.categoria||'Sin categoría')} · Estado: ${esc(pa.estado)}</div>
+      <div><span class="pill prealta">${pa.articulo_codigo?'PRE-ALTA → '+esc(pa.articulo_codigo):'PRE-ALTA'}</span> · <strong>${esc(displayDesc)}</strong></div>
+      <div style="font-size:12px;color:var(--muted)">${esc(displayCat)} · Estado: ${esc(pa.estado)}${esc(origNote)}</div>
      </div>
      <div style="text-align:right;white-space:nowrap">
       <span class="pill">✓ Contado: ${formatQty(total)} (${subParciales.length})</span>
@@ -5004,12 +5094,16 @@ function renderSelectedRecItem(){
   };
  }else{
   const pa=selectedRecItem.prealta;
+  const linkedArt=pa.articulo_codigo?all.find(x=>x.codigo===pa.articulo_codigo):null;
+  catalogArticleForPromote=linkedArt||null;
   ra=workRecuentoArticulos.find(x=>x.prealta_id===pa.id);
   itemCodeLabel=pa.articulo_codigo?`PRE-ALTA → ${pa.articulo_codigo}`:'PRE-ALTA PROVISIONAL';
-  itemDesc=pa.descripcion;
+  itemDesc=linkedArt?.descripcion||pa.descripcion;
   const cleanPreCat=String(pa.categoria||'').replace(/^\[DESCARTADA\]\s*/,'').trim()||'Sin categoría';
   const isDisc=String(pa.categoria||'').startsWith('[DESCARTADA]');
-  itemCat=`Categoría: ${cleanPreCat} · Estado pre-alta: ${isDisc?'solo en recuento':pa.estado}`;
+  const finalPreCat=linkedArt?.categoria||cleanPreCat;
+  const origNote=(linkedArt && linkedArt.descripcion!==pa.descripcion)?` · Anotado orig.: "${pa.descripcion}"`:'';
+  itemCat=`Categoría: ${finalPreCat} · Estado pre-alta: ${isDisc?'solo en recuento':pa.estado}${origNote}`;
   badgeHtml='<span class="pill prealta">Pre-alta</span>';
 
   const pIds=ra?workParciales.filter(p=>p.recuento_articulo_id===ra.id).map(p=>p.id):[];
@@ -5022,7 +5116,19 @@ function renderSelectedRecItem(){
    wrap.style.cursor='zoom-in';
    wrap.classList.remove('noPhotoMobile');
    if(topGrid)topGrid.classList.remove('noPhotoMobile');
-   wrap.onclick=()=>openImageZoom(signed,`Evidencia Pre-alta · ${pa.descripcion}`);
+   wrap.onclick=()=>openImageZoom(signed,`Evidencia Pre-alta · ${itemDesc}`);
+  }else if(linkedArt){
+   setImage(im,linkedArt,hasPhoto=>{
+    badge.hidden=!hasPhoto;
+    wrap.style.cursor=hasPhoto?'zoom-in':'default';
+    wrap.classList.toggle('noPhotoMobile',!hasPhoto);
+    if(topGrid)topGrid.classList.toggle('noPhotoMobile',!hasPhoto);
+   });
+   wrap.onclick=()=>{
+    if(im.src && im.style.display!=='none'){
+     openImageZoom(im.src,`${linkedArt.codigo} · ${linkedArt.descripcion}`,null,'Miniatura principal del catálogo');
+    }
+   };
   }else{
    im.removeAttribute('src');
    im.style.display='none';
@@ -6079,12 +6185,15 @@ function renderWorkSummary(){
   const codeBadge=x.kind==='catalogo'
    ? `<span class="code">${esc(x.codigo)}</span>`
    : `<span class="pill prealta">${x.codigo!=='PRE-ALTA'?'PRE-ALTA → '+esc(x.codigo):'PRE-ALTA ('+esc(x.estadoPrealta)+')'}</span>`;
-  const key=x.kind==='catalogo'?x.codigo:(workPrealtas.find(p=>p.descripcion===x.descripcion)?.id||'');
+  const key=x.kind==='catalogo'?x.codigo:(x.prealtaId||'');
+  const origSub=(x.kind==='prealta' && x.descripcionOriginal && x.descripcionOriginal!==x.descripcion)
+   ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">Anotado orig.: ${esc(x.descripcionOriginal)}</div>`
+   : '';
 
   return `
    <tr class="item" data-sum-kind="${esc(x.kind)}" data-sum-key="${esc(key)}">
     <td>${codeBadge}</td>
-    <td><strong>${esc(x.descripcion)}</strong></td>
+    <td><strong>${esc(x.descripcion)}</strong>${origSub}</td>
     <td>${esc(x.categoria)}</td>
     <td>${x.parciales.length}</td>
     <td class="num">${formatQty(x.total)}</td>
@@ -7607,6 +7716,472 @@ document.addEventListener('click',e=>{
   $('loadPhotosMenu').classList.remove('show');
  }
 });
+
+/* =========================================================
+   CONCILIACIÓN: MAESTRO HOTELITO VS. LISTADO SISTEMA
+   ========================================================= */
+let sysReconcileRowsData=[], sysReconcileFilter='discrepancias', sysReconcileFileName='';
+
+function normSysCode(v){
+ return String(v??'').trim().toUpperCase();
+}
+function normSysDesc(v){
+ return String(v??'').trim().replace(/\s+/g,' ').toLocaleLowerCase('es');
+}
+
+async function handleSystemListFile(file){
+ if(!isEditor||!file)return;
+ if(!window.XLSX){
+  alert('No se pudo cargar la librería de Excel (SheetJS).');
+  return;
+ }
+
+ $('sysReconcileError').textContent='';
+ sysReconcileFileName=file.name||'Listado_sistema';
+
+ try{
+  const buf=await file.arrayBuffer();
+  const wb=XLSX.read(buf,{type:'array'});
+  const firstSheetName=wb.SheetNames[0];
+  if(!firstSheetName)throw new Error('El archivo no contiene hojas válidas.');
+  const ws=wb.Sheets[firstSheetName];
+  const rawRows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+
+  const parsed=[];
+  rawRows.forEach((row,idx)=>{
+   if(!Array.isArray(row))return;
+   const cRaw=String(row[0]??'').trim();
+   const dRaw=String(row[1]??'').trim();
+   if(!cRaw && !dRaw)return;
+   // Detectar y saltear fila de encabezado en la primera fila no vacía
+   if(parsed.length===0 && idx<=2){
+    const cLow=cRaw.toLocaleLowerCase('es');
+    const dLow=dRaw.toLocaleLowerCase('es');
+    if(/^(c[oó]digo|cod\.?|id|art[ií]culo)$/.test(cLow) || /^(descripci[oó]n|desc\.?|nombre|detalle)$/.test(dLow)){
+     return;
+    }
+   }
+   if(!cRaw)return;
+   parsed.push({
+    codigo:cRaw.toUpperCase(),
+    descripcion:dRaw
+   });
+  });
+
+  if(!parsed.length){
+   throw new Error('No se encontraron filas con código y descripción. Asegurate de que la Columna 1 sea Código y la Columna 2 sea Descripción.');
+  }
+
+  // Deduplicar por código en el archivo importado (conservando el último valor si se repite)
+  const sysMap=new Map();
+  parsed.forEach(item=>{
+   sysMap.set(normSysCode(item.codigo),item);
+  });
+  const sysItems=[...sysMap.values()];
+
+  buildSystemReconciliation(sysItems);
+  sysReconcileFilter='discrepancias';
+  $('sysReconcileSearch').value='';
+  renderSystemReconciliation();
+  show('sysReconcileModal');
+
+ }catch(e){
+  console.error('Error al importar listado sistema:',e);
+  alert('No se pudo leer el listado del sistema: '+(e.message||e));
+ }
+}
+
+function buildSystemReconciliation(sysItems){
+ const hotelitoItems=all.filter(a=>a.activo!==false);
+ const hByCode=new Map();
+ hotelitoItems.forEach(a=>hByCode.set(normSysCode(a.codigo),a));
+
+ const sByCode=new Map();
+ sysItems.forEach(s=>sByCode.set(normSysCode(s.codigo),s));
+
+ const matchedH=new Set();
+ const matchedS=new Set();
+ const rows=[];
+
+ // 1. Cruce por código exacto
+ hByCode.forEach((h,code)=>{
+  if(sByCode.has(code)){
+   const s=sByCode.get(code);
+   matchedH.add(code);
+   matchedS.add(code);
+   const sameDesc=normSysDesc(h.descripcion)===normSysDesc(s.descripcion);
+   rows.push({
+    uid:newUuid(),
+    type:sameDesc?'ok':'diff_desc',
+    leyenda:sameDesc?'Coincide':'Revisar descripción',
+    hCodigo:h.codigo,
+    hDesc:h.descripcion||'',
+    hCat:h.categoria||'Sin categoría',
+    sCodigo:s.codigo,
+    sDesc:s.descripcion||'',
+    resolved:false,
+    actionNote:''
+   });
+  }
+ });
+
+ // 2. Entre los no emparejados por código, buscar coincidencias exactas de descripción (código distinto)
+ const unmatchedH=[];
+ hByCode.forEach((h,code)=>{if(!matchedH.has(code))unmatchedH.push(h);});
+ const unmatchedS=[];
+ sByCode.forEach((s,code)=>{if(!matchedS.has(code))unmatchedS.push(s);});
+
+ const unmatchedSByDesc=new Map();
+ unmatchedS.forEach(s=>{
+  const nd=normSysDesc(s.descripcion);
+  if(!nd)return;
+  if(!unmatchedSByDesc.has(nd))unmatchedSByDesc.set(nd,[]);
+  unmatchedSByDesc.get(nd).push(s);
+ });
+
+ const pairedHDesc=new Set();
+ const pairedSDesc=new Set();
+
+ unmatchedH.forEach(h=>{
+  const nd=normSysDesc(h.descripcion);
+  if(!nd)return;
+  const candidates=unmatchedSByDesc.get(nd);
+  if(candidates && candidates.length){
+   const s=candidates.shift();
+   pairedHDesc.add(normSysCode(h.codigo));
+   pairedSDesc.add(normSysCode(s.codigo));
+   rows.push({
+    uid:newUuid(),
+    type:'diff_code',
+    leyenda:'Revisar código',
+    hCodigo:h.codigo,
+    hDesc:h.descripcion||'',
+    hCat:h.categoria||'Sin categoría',
+    sCodigo:s.codigo,
+    sDesc:s.descripcion||'',
+    resolved:false,
+    actionNote:''
+   });
+  }
+ });
+
+ // 3. Solo en Hotelito -> Dar de alta en sistema
+ unmatchedH.forEach(h=>{
+  if(pairedHDesc.has(normSysCode(h.codigo)))return;
+  rows.push({
+   uid:newUuid(),
+   type:'only_hotelito',
+   leyenda:'Dar de alta en sistema',
+   hCodigo:h.codigo,
+   hDesc:h.descripcion||'',
+   hCat:h.categoria||'Sin categoría',
+   sCodigo:'',
+   sDesc:'',
+   resolved:false,
+   actionNote:''
+  });
+ });
+
+ // 4. Solo en Sistema -> Crear en maestro
+ unmatchedS.forEach(s=>{
+  if(pairedSDesc.has(normSysCode(s.codigo)))return;
+  rows.push({
+   uid:newUuid(),
+   type:'only_sistema',
+   leyenda:'Crear en maestro',
+   hCodigo:'',
+   hDesc:'',
+   hCat:'',
+   sCodigo:s.codigo,
+   sDesc:s.descripcion||'',
+   resolved:false,
+   actionNote:''
+  });
+ });
+
+ const orderWeight={only_sistema:1,diff_desc:2,diff_code:3,only_hotelito:4,ok:5};
+ rows.sort((a,b)=>(orderWeight[a.type]-orderWeight[b.type]) || (a.sCodigo||a.hCodigo).localeCompare(b.sCodigo||b.hCodigo,'es'));
+
+ sysReconcileRowsData=rows;
+}
+
+function sysTypePillHtml(row){
+ if(row.resolved){
+  return `<span class="pill">✓ ${esc(row.actionNote||'Resuelto')}</span>`;
+ }
+ if(row.type==='only_sistema')return '<span class="pill prealta">Solo en sistema</span>';
+ if(row.type==='only_hotelito')return '<span class="pill no">Dar de alta en sistema</span>';
+ if(row.type==='diff_desc')return '<span class="pill inactive">Revisar descripción</span>';
+ if(row.type==='diff_code')return '<span class="pill inactive">Revisar código</span>';
+ return '<span class="pill">Coincide</span>';
+}
+
+function renderSystemReconciliation(){
+ const counts={
+  discrepancias:sysReconcileRowsData.filter(r=>r.type!=='ok').length,
+  only_sistema:sysReconcileRowsData.filter(r=>r.type==='only_sistema').length,
+  only_hotelito:sysReconcileRowsData.filter(r=>r.type==='only_hotelito').length,
+  diff_desc:sysReconcileRowsData.filter(r=>r.type==='diff_desc').length,
+  diff_code:sysReconcileRowsData.filter(r=>r.type==='diff_code').length,
+  ok:sysReconcileRowsData.filter(r=>r.type==='ok').length
+ };
+
+ $('sysReconcileMeta').textContent=
+  `Archivo: ${sysReconcileFileName} · ${sysReconcileRowsData.length} ítems analizados · ${counts.discrepancias} discrepancia(s) y ${counts.ok} coincidencia(s).`;
+
+ const kpis=[
+  {key:'discrepancias',label:'Todas las discrepancias',cnt:counts.discrepancias},
+  {key:'only_sistema',label:'Faltan en Hotelito',cnt:counts.only_sistema},
+  {key:'only_hotelito',label:'Dar de alta en sistema',cnt:counts.only_hotelito},
+  {key:'diff_desc',label:'Revisar descripción',cnt:counts.diff_desc},
+  {key:'diff_code',label:'Revisar código',cnt:counts.diff_code},
+  {key:'ok',label:'Coinciden',cnt:counts.ok}
+ ];
+
+ $('sysKpiBar').innerHTML=kpis.map(k=>`
+  <button type="button" class="sysKpiBtn ${sysReconcileFilter===k.key?'active':''}" data-sys-filter="${k.key}">
+   <span>${esc(k.label)}</span>
+   <span class="sysKpiCount">${k.cnt}</span>
+  </button>
+ `).join('');
+
+ $('sysKpiBar').querySelectorAll('[data-sys-filter]').forEach(btn=>{
+  btn.onclick=()=>{
+   sysReconcileFilter=btn.dataset.sysFilter;
+   renderSystemReconciliation();
+  };
+ });
+
+ const pendingMissing=sysReconcileRowsData.filter(r=>r.type==='only_sistema' && !r.resolved);
+ const createAllBtn=$('sysCreateAllMissingBtn');
+ createAllBtn.hidden=pendingMissing.length===0;
+ createAllBtn.textContent=`+ Crear todos los faltantes (${pendingMissing.length})`;
+
+ const q=$('sysReconcileSearch').value.trim().toLocaleLowerCase('es');
+ const visible=sysReconcileRowsData.filter(r=>{
+  const matchTab=sysReconcileFilter==='discrepancias' ? r.type!=='ok' : r.type===sysReconcileFilter;
+  const matchQ=!q || [r.hCodigo,r.hDesc,r.sCodigo,r.sDesc,r.leyenda].some(v=>(v||'').toLocaleLowerCase('es').includes(q));
+  return matchTab && matchQ;
+ });
+
+ $('sysReconcileEmpty').hidden=visible.length!==0;
+ $('sysReconcileRows').innerHTML=visible.map(r=>{
+  let actionHtml='<span style="font-size:12px;color:var(--muted)">—</span>';
+
+  if(r.resolved){
+   actionHtml=`<span style="font-size:12px;color:var(--accent2);font-weight:700">✓ ${esc(r.actionNote||'Aplicado')}</span>`;
+  }else if(r.type==='only_sistema'){
+   actionHtml=`
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+     <button type="button" class="sm" data-sys-create="${esc(r.uid)}">+ Crear en maestro</button>
+    </div>
+   `;
+  }else if(r.type==='diff_desc'){
+   actionHtml=`
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+     <button type="button" class="secondary sm" data-sys-upd-desc="${esc(r.uid)}" title="Reemplazar descripción de Hotelito por la del sistema">Usar desc. sistema</button>
+    </div>
+   `;
+  }else if(r.type==='only_hotelito'){
+   actionHtml='<span style="font-size:11.5px;color:var(--warn);font-weight:600">Dar de alta en sistema</span>';
+  }else if(r.type==='diff_code'){
+   actionHtml='<span style="font-size:11.5px;color:var(--danger);font-weight:600">Revisar código</span>';
+  }
+
+  return `
+   <tr class="${r.resolved?'sysRowResolved':''}">
+    <td>${sysTypePillHtml(r)}</td>
+    <td class="code">${esc(r.hCodigo||'—')}</td>
+    <td>${esc(r.hDesc||'—')}</td>
+    <td class="code">${esc(r.sCodigo||'—')}</td>
+    <td>${esc(r.sDesc||'—')}</td>
+    <td>${actionHtml}</td>
+   </tr>
+  `;
+ }).join('');
+
+ $('sysReconcileRows').querySelectorAll('[data-sys-create]').forEach(btn=>{
+  btn.onclick=()=>createArticleFromSystemRow(btn.dataset.sysCreate,btn);
+ });
+ $('sysReconcileRows').querySelectorAll('[data-sys-upd-desc]').forEach(btn=>{
+  btn.onclick=()=>updateDescFromSystemRow(btn.dataset.sysUpdDesc,btn);
+ });
+}
+
+async function createArticleFromSystemRow(uid,btnEl=null){
+ if(!navigator.onLine){
+  alert('Necesitás conexión a internet para crear artículos en el maestro.');
+  return;
+ }
+ const row=sysReconcileRowsData.find(r=>r.uid===uid);
+ if(!row || row.resolved)return;
+ const categoria=($('sysDefaultCat').value||'').trim()||'Sin categoría';
+ const codigo=normSysCode(row.sCodigo);
+ const descripcion=(row.sDesc||row.sCodigo).trim();
+
+ $('sysReconcileError').textContent='';
+ if(btnEl)btnEl.disabled=true;
+
+ try{
+  const {error}=await sb.from('articulos').insert({
+   codigo,
+   descripcion,
+   categoria,
+   verificacion_foto:'Sin foto',
+   foto_archivo:null,
+   activo:true
+  });
+  if(error)throw error;
+
+  row.resolved=true;
+  row.hCodigo=codigo;
+  row.hDesc=descripcion;
+  row.hCat=categoria;
+  row.actionNote='Creado en maestro';
+
+  await refreshCatalogSilently();
+  renderSystemReconciliation();
+ }catch(e){
+  $('sysReconcileError').textContent=`Error al crear ${codigo}: ${e.message||e}`;
+  if(btnEl)btnEl.disabled=false;
+ }
+}
+
+async function createAllMissingFromSystem(){
+ if(!navigator.onLine){
+  alert('Necesitás conexión a internet para crear artículos en el maestro.');
+  return;
+ }
+ const pending=sysReconcileRowsData.filter(r=>r.type==='only_sistema' && !r.resolved);
+ if(!pending.length)return;
+ const categoria=($('sysDefaultCat').value||'').trim()||'Sin categoría';
+
+ if(!confirm(`¿Crear ${pending.length} artículo(s) nuevos en el Catálogo Maestro de Hotelito bajo la categoría "${categoria}"?`))return;
+
+ const btn=$('sysCreateAllMissingBtn');
+ btn.disabled=true;
+ $('sysReconcileError').textContent='';
+
+ try{
+  const payload=pending.map(r=>({
+   codigo:normSysCode(r.sCodigo),
+   descripcion:(r.sDesc||r.sCodigo).trim(),
+   categoria,
+   verificacion_foto:'Sin foto',
+   foto_archivo:null,
+   activo:true
+  }));
+
+  const {error}=await sb.from('articulos').upsert(payload,{onConflict:'codigo',ignoreDuplicates:true});
+  if(error)throw error;
+
+  pending.forEach(r=>{
+   r.resolved=true;
+   r.hCodigo=normSysCode(r.sCodigo);
+   r.hDesc=(r.sDesc||r.sCodigo).trim();
+   r.hCat=categoria;
+   r.actionNote='Creado en maestro';
+  });
+
+  await refreshCatalogSilently();
+  renderSystemReconciliation();
+ }catch(e){
+  $('sysReconcileError').textContent='Error al crear faltantes: '+(e.message||e);
+ }finally{
+  btn.disabled=false;
+ }
+}
+
+async function updateDescFromSystemRow(uid,btnEl=null){
+ if(!navigator.onLine){
+  alert('Necesitás conexión a internet para actualizar el catálogo.');
+  return;
+ }
+ const row=sysReconcileRowsData.find(r=>r.uid===uid);
+ if(!row || row.resolved)return;
+ const nuevaDesc=(row.sDesc||'').trim();
+ if(!nuevaDesc){
+  alert('La descripción del sistema está vacía.');
+  return;
+ }
+
+ $('sysReconcileError').textContent='';
+ if(btnEl)btnEl.disabled=true;
+
+ try{
+  const {error}=await sb.from('articulos')
+   .update({descripcion:nuevaDesc,actualizado_en:new Date().toISOString()})
+   .eq('codigo',row.hCodigo);
+  if(error)throw error;
+
+  row.resolved=true;
+  row.hDesc=nuevaDesc;
+  row.actionNote='Descripción actualizada';
+
+  await refreshCatalogSilently();
+  renderSystemReconciliation();
+ }catch(e){
+  $('sysReconcileError').textContent=`Error al actualizar ${row.hCodigo}: ${e.message||e}`;
+  if(btnEl)btnEl.disabled=false;
+ }
+}
+
+function exportSystemReconciliationExcel(){
+ if(!window.XLSX || !sysReconcileRowsData.length)return;
+
+ const wb=XLSX.utils.book_new();
+ const nowStr=formatDate(new Date().toISOString());
+
+ const resumenRows=[
+  ['Conciliación Catálogo Maestro Hotelito vs. Listado Sistema'],
+  ['Archivo importado:',sysReconcileFileName],
+  ['Fecha de conciliación:',nowStr],
+  [],
+  ['Tipo / Leyenda','Cantidad'],
+  ['Solo en sistema (Crear en maestro)',sysReconcileRowsData.filter(r=>r.type==='only_sistema').length],
+  ['Dar de alta en sistema (Solo en Hotelito)',sysReconcileRowsData.filter(r=>r.type==='only_hotelito').length],
+  ['Revisar descripción',sysReconcileRowsData.filter(r=>r.type==='diff_desc').length],
+  ['Revisar código',sysReconcileRowsData.filter(r=>r.type==='diff_code').length],
+  ['Coinciden',sysReconcileRowsData.filter(r=>r.type==='ok').length],
+  ['Total analizado',sysReconcileRowsData.length]
+ ];
+ const wsRes=XLSX.utils.aoa_to_sheet(resumenRows);
+ wsRes['!cols']=[{wch:42},{wch:14}];
+ XLSX.utils.book_append_sheet(wb,wsRes,'Resumen');
+
+ const detHeader=[
+  ['Estado / Leyenda','Código Hotelito','Descripción Hotelito','Categoría Hotelito','Código Sistema','Descripción Sistema','Acción realizada']
+ ];
+ const detBody=sysReconcileRowsData.map(r=>[
+  r.leyenda,
+  r.hCodigo||'',
+  r.hDesc||'',
+  r.hCat||'',
+  r.sCodigo||'',
+  r.sDesc||'',
+  r.resolved?(r.actionNote||'Resuelto'):'Pendiente'
+ ]);
+ const wsDet=XLSX.utils.aoa_to_sheet([...detHeader,...detBody]);
+ wsDet['!cols']=[{wch:26},{wch:18},{wch:44},{wch:24},{wch:18},{wch:44},{wch:24}];
+ XLSX.utils.book_append_sheet(wb,wsDet,'Conciliación');
+
+ const fecha=new Date().toISOString().slice(0,10);
+ XLSX.writeFile(wb,`Conciliacion_Maestro_Sistema_${fecha}.xlsx`);
+}
+
+$('importSystemListBtn').onclick=()=>{
+ $('loadPhotosMenu').classList.remove('show');
+ $('systemListInput').click();
+};
+$('sysReloadFileBtn').onclick=()=>$('systemListInput').click();
+$('systemListInput').onchange=()=>{
+ const f=$('systemListInput').files[0];
+ $('systemListInput').value='';
+ if(f)handleSystemListFile(f);
+};
+$('sysReconcileSearch').addEventListener('input',renderSystemReconciliation);
+$('sysCreateAllMissingBtn').addEventListener('click',createAllMissingFromSystem);
+$('sysExportExcelBtn').addEventListener('click',exportSystemReconciliationExcel);
 
 $('bulkPhotos').onclick=()=>{
  $('loadPhotosMenu').classList.remove('show');
