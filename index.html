@@ -2065,28 +2065,31 @@ async function processSyncQueues(manual=false){
       if(existingRa?.id)targetRaId=existingRa.id;
      }
 
-     const {data:targetRaRow}=await sb.from('recuento_articulos')
-      .select('ultimo_numero_parcial')
-      .eq('id',targetRaId)
-      .single();
-     const nextNumero=(Number(targetRaRow?.ultimo_numero_parcial||0))+1;
+     // El trigger de Supabase bloquea cambiar recuento_articulo_id por UPDATE,
+     // por lo que trasladamos creando el parcial en el destino, reasignando fotos y eliminando el origen.
+     const newParcialId=op.payload.new_parcial_id||newUuid();
+     const {error:insNewErr}=await sb.from('recuento_parciales').upsert({
+      id:newParcialId,
+      recuento_articulo_id:targetRaId,
+      numero:0,
+      nombre:op.payload.nombre,
+      expresion:op.payload.expresion,
+      cantidad:op.payload.cantidad,
+      observacion:op.payload.observacion,
+      creado_por:currentUser.id,
+      creado_en:op.payload.actualizado_en||new Date().toISOString()
+     },{onConflict:'id',ignoreDuplicates:true});
+     if(insNewErr)throw insNewErr;
 
-     await sb.from('recuento_articulos')
-      .update({ultimo_numero_parcial:nextNumero})
-      .eq('id',targetRaId);
+     // Reasignar cualquier fotografía de evidencia del parcial original al nuevo parcial
+     await sb.from('recuento_fotografias')
+      .update({parcial_id:newParcialId})
+      .eq('parcial_id',op.payload.id);
 
-     const {error:mvErr}=await sb.from('recuento_parciales')
-      .update({
-       recuento_articulo_id:targetRaId,
-       numero:nextNumero,
-       expresion:op.payload.expresion,
-       cantidad:op.payload.cantidad,
-       nombre:op.payload.nombre,
-       observacion:op.payload.observacion,
-       actualizado_en:op.payload.actualizado_en
-      })
+     const {error:delOldErr}=await sb.from('recuento_parciales')
+      .delete()
       .eq('id',op.payload.id);
-     if(mvErr)throw mvErr;
+     if(delOldErr)throw delOldErr;
 
      if(op.payload.old_ra_id && op.payload.old_ra_id!==targetRaId){
       const {count}=await sb.from('recuento_parciales')
