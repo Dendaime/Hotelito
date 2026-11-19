@@ -3588,12 +3588,20 @@ async function importFiles(files){
 async function refreshPendingPrealtasBadge(){
  if(!isEditor||!navigator.onLine)return;
  try{
-  const {data,error}=await sb
-   .from('recuento_prealtas')
-   .select('id,categoria')
-   .eq('estado','pendiente');
+  const [{data,error},{data:consRecs}]=await Promise.all([
+   sb.from('recuento_prealtas')
+     .select('id,recuento_id,categoria')
+     .eq('estado','pendiente'),
+   sb.from('recuentos')
+     .select('id')
+     .eq('estado','consolidado')
+  ]);
   if(error)return;
-  const n=(data||[]).filter(r=>!String(r.categoria||'').startsWith('[DESCARTADA]')).length;
+  const consIds=new Set((consRecs||[]).map(r=>r.id));
+  const n=(data||[]).filter(r=>
+   !String(r.categoria||'').startsWith('[DESCARTADA]') &&
+   !consIds.has(r.recuento_id)
+  ).length;
   $('prealtasBadge').textContent=n;
   $('prealtasBadge').hidden=n===0;
   if($('drawerPrealtasBadge')){
@@ -5523,8 +5531,9 @@ async function loadPrealtasInbox(){
    await signStoragePaths(fList.map(f=>f.archivo));
   }
 
+  const consolidatedRecIds=new Set((recList||[]).filter(r=>r.estado==='consolidado').map(r=>r.id));
   allPrealtasInbox=(preList||[])
-   .filter(pa=>!String(pa.categoria||'').startsWith('[DESCARTADA]'))
+   .filter(pa=>!String(pa.categoria||'').startsWith('[DESCARTADA]') && !consolidatedRecIds.has(pa.recuento_id))
    .map(pa=>{
     const rec=(recList||[]).find(r=>r.id===pa.recuento_id);
     const ra=raList.find(x=>x.prealta_id===pa.id);
