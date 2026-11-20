@@ -1231,7 +1231,6 @@ input::placeholder{color:#9aa8ad}
      </div>
      <div id="acgmConnectedActions" style="display:none;gap:8px;align-items:center;flex-wrap:wrap">
       <button type="button" class="secondary sm" id="acgmRefreshBtn">↻ Actualizar</button>
-      <button type="button" class="secondary sm" id="acgmExportExcelBtn">↓ Exportar Excel</button>
       <button type="button" class="secondary sm" id="acgmLogoutBtn">Desconectar</button>
      </div>
     </div>
@@ -1241,9 +1240,9 @@ input::placeholder{color:#9aa8ad}
     <div id="acgmComprasArea" hidden>
      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:4px">
       <div class="acgmTipoSwitch" id="acgmTipoSwitch">
-       <button type="button" class="acgmTipoBtn active" data-acgm-tipo="acgm">ACGM</button>
+       <button type="button" class="acgmTipoBtn active" data-acgm-tipo="ambas">Ambas</button>
+       <button type="button" class="acgmTipoBtn" data-acgm-tipo="acgm">ACGM</button>
        <button type="button" class="acgmTipoBtn" data-acgm-tipo="solicitud">Solicitudes</button>
-       <button type="button" class="acgmTipoBtn" data-acgm-tipo="ambas">Ambas</button>
       </div>
      </div>
      <section class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
@@ -1258,8 +1257,8 @@ input::placeholder{color:#9aa8ad}
       <input id="aHasta" type="date" title="Fecha hasta">
       <input id="aSearch" placeholder="Buscar proveedor, CUIT, N° factura, ACGM o rubro…" style="flex:1;min-width:210px">
       <select id="aEmpresa"><option value="">Todas las empresas</option></select>
-      <select id="aEstado"><option value="">Todos los estados</option></select>
       <button type="button" id="aBuscarBtn">Consultar</button>
+      <button type="button" class="secondary" id="acgmExportExcelBtn">↓ Exportar Excel</button>
      </div>
 
      <div class="auditFilterBar" id="aAuditChips">
@@ -1272,7 +1271,7 @@ input::placeholder{color:#9aa8ad}
 
      <div class="meta">
       <span id="aCountLabel">Listo para consultar</span>
-      <span>Tocá una fila para ver detalle completo, CBU, retenciones y descargar PDF</span>
+      <span>Tocá una fila para ver detalle completo, historial de estados y descargar archivos</span>
      </div>
 
      <div class="tablewrap">
@@ -1282,9 +1281,9 @@ input::placeholder{color:#9aa8ad}
          <th>Fecha / ACGM</th>
          <th>Factura / Empresa</th>
          <th>Proveedor</th>
+         <th>Rubro</th>
          <th>Monto fact. / A pagar</th>
          <th>Estado / Pago</th>
-         <th>PDF</th>
         </tr>
        </thead>
        <tbody id="aComprasRows"></tbody>
@@ -8985,24 +8984,44 @@ function vestaLogout(){
  showVestaError('');
 }
 
+let vestaRefreshPromise=null;
+let vestaLastRefreshAt=0;
+
+async function vestaRefreshSession(){
+ if(!vestaSession?.refreshToken)return false;
+ if(vestaRefreshPromise)return vestaRefreshPromise;
+ vestaRefreshPromise=(async()=>{
+  try{
+   const rRef=await fetch(`${VESTA_API_URL}/auth/refresh`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({refreshToken:vestaSession.refreshToken})
+   });
+   if(!rRef.ok)return false;
+   const jRef=await rRef.json().catch(()=>({}));
+   const dRef=jRef.data||jRef;
+   if(dRef.accessToken){
+    saveVestaSession({...vestaSession,accessToken:dRef.accessToken,refreshToken:dRef.refreshToken||vestaSession.refreshToken});
+    vestaLastRefreshAt=Date.now();
+    return true;
+   }
+   return false;
+  }catch{
+   return false;
+  }finally{
+   vestaRefreshPromise=null;
+  }
+ })();
+ return vestaRefreshPromise;
+}
+
 async function vestaFetch(path,options={},retry=true){
  if(!vestaSession?.accessToken)throw new Error('Sesión de Vesta no iniciada.');
  const headers={...(options.headers||{}),'Authorization':`Bearer ${vestaSession.accessToken}`};
  const res=await fetch(`${VESTA_API_URL}${path}`,{...options,headers});
  if(res.status===401 && retry && vestaSession.refreshToken){
-  const rRef=await fetch(`${VESTA_API_URL}/auth/refresh`,{
-   method:'POST',
-   headers:{'Content-Type':'application/json'},
-   body:JSON.stringify({refreshToken:vestaSession.refreshToken})
-  });
-  if(rRef.ok){
-   const jRef=await rRef.json().catch(()=>({}));
-   const dRef=jRef.data||jRef;
-   if(dRef.accessToken){
-    saveVestaSession({...vestaSession,accessToken:dRef.accessToken,refreshToken:dRef.refreshToken||vestaSession.refreshToken});
-    return vestaFetch(path,options,false);
-   }
-  }
+  const ok=await vestaRefreshSession();
+  if(ok)return vestaFetch(path,options,false);
   vestaLogout();
   throw new Error('Tu sesión en Vesta expiró. Volvé a iniciar sesión.');
  }
@@ -9227,7 +9246,7 @@ const ACGM_STORAGE_KEY='hotelito_acgm_session';
 
 let activeMovSub='recepciones';
 let acgmSession=null;
-let acgmTipo='acgm';
+let acgmTipo='ambas';
 let acgmFacturasRaw=[];
 let acgmDetailCache={};
 let acgmTotalServer=0;
@@ -9334,24 +9353,82 @@ function acgmLogout(){
  showAcgmError('');
 }
 
-async function fetchAcgmFacturasByTipo(tipo){
- const query={page:'1',limit:'200',tipo};
- if($('aDesde').value)query.desde=$('aDesde').value;
- if($('aHasta').value)query.hasta=$('aHasta').value;
+let acgmRefreshPromise=null;
+let acgmLastRefreshAt=0;
 
+function mergeAcgmCookie(oldCookie,newCookie){
+ if(!newCookie)return oldCookie||'';
+ const map=new Map();
+ String(oldCookie||'').split(';').forEach(p=>{
+  const i=p.indexOf('=');
+  if(i>0)map.set(p.slice(0,i).trim(),p.slice(i+1).trim());
+ });
+ String(newCookie||'').split(';').forEach(p=>{
+  const i=p.indexOf('=');
+  if(i>0)map.set(p.slice(0,i).trim(),p.slice(i+1).trim());
+ });
+ return [...map.entries()].map(([k,v])=>`${k}=${v}`).join('; ');
+}
+
+async function acgmRefreshSession(){
+ if(!acgmSession?.cookie && !acgmSession?.token)return false;
+ if(acgmRefreshPromise)return acgmRefreshPromise;
+ acgmRefreshPromise=(async()=>{
+  try{
+   const res=await fetch(ACGM_PROXY_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+     action:'post',
+     path:'/auth/refresh',
+     payload:{},
+     cookie:acgmSession.cookie||undefined,
+     token:acgmSession.token||undefined
+    })
+   });
+   const json=await res.json().catch(()=>({}));
+   if(res.ok && json.ok && (json.cookie || json.token)){
+    saveAcgmSession({
+     ...acgmSession,
+     cookie:mergeAcgmCookie(acgmSession.cookie,json.cookie),
+     token:json.token||acgmSession.token||''
+    });
+    acgmLastRefreshAt=Date.now();
+    return true;
+   }
+   return false;
+  }catch{
+   return false;
+  }finally{
+   acgmRefreshPromise=null;
+  }
+ })();
+ return acgmRefreshPromise;
+}
+
+async function acgmProxyGet(path,query,retry=true){
  const res=await fetch(ACGM_PROXY_URL,{
   method:'POST',
   headers:{'Content-Type':'application/json'},
   body:JSON.stringify({
    action:'get',
-   path:'/facturas/',
-   query,
+   path,
+   query:query||undefined,
    cookie:acgmSession.cookie||undefined,
    token:acgmSession.token||undefined
   })
  });
  const json=await res.json().catch(()=>({}));
- if(res.status===401 || json.status===401){
+ if(json.cookie || json.token){
+  saveAcgmSession({
+   ...acgmSession,
+   cookie:mergeAcgmCookie(acgmSession.cookie,json.cookie),
+   token:json.token||acgmSession.token||''
+  });
+ }
+ if((res.status===401 || json.status===401) && retry){
+  const ok=await acgmRefreshSession();
+  if(ok)return acgmProxyGet(path,query,false);
   acgmLogout();
   throw new Error('Tu sesión en ACGM expiró. Volvé a iniciar sesión.');
  }
@@ -9359,6 +9436,15 @@ async function fetchAcgmFacturasByTipo(tipo){
   const msg=json?.data?.message||json?.error||`Error HTTP ${json.status||res.status}`;
   throw new Error(msg);
  }
+ return json;
+}
+
+async function fetchAcgmFacturasByTipo(tipo){
+ const query={page:'1',limit:'200',tipo};
+ if($('aDesde').value)query.desde=$('aDesde').value;
+ if($('aHasta').value)query.hasta=$('aHasta').value;
+
+ const json=await acgmProxyGet('/facturas/',query);
  const d=json.data||{};
  const rows=(Array.isArray(d.facturas)?d.facturas:(Array.isArray(d)?d:[])).map(f=>({
   ...f,
@@ -9400,13 +9486,9 @@ async function loadAcgmFacturas(){
 
 function populateAcgmFilters(){
  const curEmp=$('aEmpresa').value;
- const curEst=$('aEstado').value;
  const empresas=[...new Set(acgmFacturasRaw.map(f=>f.nombre_empresa).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
- const estados=[...new Set(acgmFacturasRaw.map(f=>f.estado).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
  $('aEmpresa').innerHTML='<option value="">Todas las empresas</option>'+empresas.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join('');
- $('aEstado').innerHTML='<option value="">Todos los estados</option>'+estados.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join('');
  if(empresas.includes(curEmp))$('aEmpresa').value=curEmp;
- if(estados.includes(curEst))$('aEstado').value=curEst;
 }
 
 function analyzeAcgmFactura(f){
@@ -9422,10 +9504,8 @@ function analyzeAcgmFactura(f){
 function getFilteredAcgmFacturas(){
  const q=$('aSearch').value.trim().toLocaleLowerCase('es');
  const emp=$('aEmpresa').value;
- const est=$('aEstado').value;
  return acgmFacturasRaw.filter(f=>{
   if(emp && f.nombre_empresa!==emp)return false;
-  if(est && f.estado!==est)return false;
   if(q){
    const hay=[f.nombre_proveedor,f.cuit,f.nro_factura,String(f.nro_acgm||''),String(f.nro_pago||''),f.nombre_empresa,f.nombre_rubro,f.autorizado_por,f.observacion]
     .some(v=>(v||'').toLocaleLowerCase('es').includes(q));
@@ -9472,25 +9552,7 @@ function renderAcgmMiniStepper(estado,resultado){
 async function fetchAcgmFacturaDetail(idFactura){
  if(!idFactura || (!acgmSession?.cookie && !acgmSession?.token))return null;
  if(acgmDetailCache[idFactura])return acgmDetailCache[idFactura];
- const res=await fetch(ACGM_PROXY_URL,{
-  method:'POST',
-  headers:{'Content-Type':'application/json'},
-  body:JSON.stringify({
-   action:'get',
-   path:`/facturas/${encodeURIComponent(idFactura)}`,
-   cookie:acgmSession.cookie||undefined,
-   token:acgmSession.token||undefined
-  })
- });
- const json=await res.json().catch(()=>({}));
- if(res.status===401 || json.status===401){
-  acgmLogout();
-  throw new Error('Tu sesión en ACGM expiró. Volvé a iniciar sesión.');
- }
- if(!res.ok || !json.ok){
-  const msg=json?.data?.message||json?.error||`Error HTTP ${json.status||res.status}`;
-  throw new Error(msg);
- }
+ const json=await acgmProxyGet(`/facturas/${encodeURIComponent(idFactura)}`);
  const det=json?.data?.factura || json?.data || null;
  if(det)acgmDetailCache[idFactura]=det;
  return det;
@@ -9642,8 +9704,6 @@ function renderAcgmFacturas(){
 
  $('aComprasRows').innerHTML=list.map((f,idx)=>{
   const a=analyzeAcgmFactura(f);
-  const cached=f.id_factura?acgmDetailCache[f.id_factura]:null;
-  const urlAut=f.url_ok||f.url_autorizacion||cached?.url_ok||cached?.url_autorizacion||'';
   const isSol=(f._tipoOrigen==='solicitud' || f.nro_acgm==null);
   const metodos=Array.isArray(f.tipo_pago)?f.tipo_pago.map(tp=>tp.nombre_metodo_pago).filter(Boolean).join(', '):'—';
   const origenHtml=isSol
@@ -9657,11 +9717,14 @@ function renderAcgmFacturas(){
     </td>
     <td>
      <strong class="code">${esc(f.nro_factura||'S/N')}</strong>
-     <div style="font-size:11px;color:var(--muted);text-transform:uppercase">${esc(f.nombre_empresa||'—')}${f.nombre_rubro?` · ${esc(f.nombre_rubro)}`:''}</div>
+     <div style="font-size:11px;color:var(--muted);text-transform:uppercase">${esc(f.nombre_empresa||'—')}</div>
     </td>
     <td>
      <strong>${esc(f.nombre_proveedor||'—')}</strong>
      <div style="font-size:11px;color:var(--muted)">CUIT: ${esc(f.cuit||'—')}</div>
+    </td>
+    <td>
+     <span style="font-size:12.5px">${esc(f.nombre_rubro||'—')}</span>
     </td>
     <td class="num">
      <div><strong>${formatMoneyAR(f.monto_facturado)}</strong></div>
@@ -9669,13 +9732,7 @@ function renderAcgmFacturas(){
     </td>
     <td>
      <span class="pill ${f.estado==='pagado'?'':'prealta'}">${esc(f.estado||'—')}</span>
-     ${renderAcgmMiniStepper(f.estado,f.resultado)}
      <div style="font-size:11px;color:var(--muted);margin-top:3px">${esc(metodos)}${f.nro_pago?` · OP #${esc(f.nro_pago)}`:''}</div>
-    </td>
-    <td onclick="event.stopPropagation()">
-     ${f.url_factura?`<a class="evidLinkBtn" href="${esc(f.url_factura)}" target="_blank" rel="noopener" style="padding:4px 8px">📄 FC</a>`:'<span class="pill no">Sin PDF</span>'}
-     ${urlAut?` <a class="evidLinkBtn" href="${esc(urlAut)}" target="_blank" rel="noopener" style="padding:4px 8px">🛡️ Aut</a>`:''}
-     ${f.url_retencion?` <a class="evidLinkBtn" href="${esc(f.url_retencion)}" target="_blank" rel="noopener" style="padding:4px 8px">📑 Ret</a>`:''}
     </td>
    </tr>
   `;
@@ -9828,7 +9885,6 @@ $('aBuscarBtn').addEventListener('click',loadAcgmFacturas);
 $('acgmExportExcelBtn').addEventListener('click',exportAcgmComprasExcel);
 $('aSearch').addEventListener('input',renderAcgmFacturas);
 $('aEmpresa').addEventListener('change',renderAcgmFacturas);
-$('aEstado').addEventListener('change',renderAcgmFacturas);
 document.querySelectorAll('#aAuditChips [data-aaudit]').forEach(btn=>{
  btn.addEventListener('click',()=>{
   acgmAuditFilter=btn.dataset.aaudit;
@@ -9836,6 +9892,21 @@ document.querySelectorAll('#aAuditChips [data-aaudit]').forEach(btn=>{
   renderAcgmFacturas();
  });
 });
+
+function keepAliveExternalSessions(){
+ const now=Date.now();
+ if(vestaSession?.refreshToken && (now-vestaLastRefreshAt)>6*60*1000){
+  vestaRefreshSession().catch(()=>{});
+ }
+ if((acgmSession?.cookie || acgmSession?.token) && (now-acgmLastRefreshAt)>6*60*1000){
+  acgmRefreshSession().catch(()=>{});
+ }
+}
+setInterval(keepAliveExternalSessions,6*60*1000);
+document.addEventListener('visibilitychange',()=>{
+ if(!document.hidden)keepAliveExternalSessions();
+});
+
 cfgLoad();
 </script>
 </body>
