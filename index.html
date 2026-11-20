@@ -9984,8 +9984,9 @@ function renderAcgmFacturas(){
   const origenHtml=isSol
    ? `<span class="pill prealta" style="padding:1px 6px;font-size:10px">Solicitud</span>${f.autorizado_por?` · Aut: ${esc(String(f.autorizado_por).toUpperCase())}`:''}`
    : `ACGM #${esc(f.nro_acgm)}`;
+  const rowStyle=cat?` style="background:${esc(cat.color)}18;box-shadow:inset 4px 0 0 ${esc(cat.color)}"`:'';
   return `
-   <tr class="item" data-acgm-idx="${idx}">
+   <tr class="item" data-acgm-idx="${idx}"${rowStyle}>
     <td>
      <div>${esc((f.fecha_creacion||'—').slice(0,10))}</div>
      <div style="font-size:11px;color:var(--muted)">${origenHtml}${a.urgente?' <span class="pill no" style="padding:1px 6px;font-size:10px">⚡ URG</span>':''}</div>
