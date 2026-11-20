@@ -302,6 +302,7 @@ input::placeholder{color:#9aa8ad}
 .totalFlash{animation:totalFlashGreen .75s ease}
 .summaryHeaderControls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .summarySortSelect{padding:7px 11px;font-size:12.5px;font-weight:700;border-radius:9px;background:var(--panel2);border:1px solid var(--line);color:var(--text)}
+.summarySearchInput{padding:7px 11px;font-size:13px;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--text);min-width:210px}
 
 /* CONCILIACIÓN LISTADO SISTEMA */
 .sysKpiBar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
@@ -312,27 +313,6 @@ input::placeholder{color:#9aa8ad}
 .sysToolbar input{flex:1;min-width:190px;padding:9px 11px;font-size:13px}
 .sysCatInput{width:140px;padding:5px 8px;font-size:12px;border-radius:8px}
 .sysRowResolved{opacity:.65;background:#f4fbf6}
-
-/* =========================================================
-   MÓDULO CONTROL DE MOVIMIENTOS (VESTA)
-   ========================================================= */
-.subNavTabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-.subNavTab{background:var(--panel);color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:8px 14px;font-weight:700;font-size:12.5px;cursor:pointer}
-.subNavTab.active{background:#e6f2f1;color:var(--accent);border-color:var(--accent)}
-.vestaAuthBar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 16px;margin-bottom:16px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
-.vestaLoginInline{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.vestaLoginInline input{padding:9px 11px;font-size:13px;min-width:160px}
-.auditFilterBar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
-.auditChipBtn{background:var(--panel);color:var(--text);border:1.5px solid var(--line);border-radius:99px;padding:6px 13px;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.auditChipBtn.active{background:var(--accent);color:#06201f;border-color:var(--accent)}
-.qtyOld{text-decoration:line-through;color:var(--muted);margin-right:6px;font-size:12px}
-.qtyDiff{color:var(--danger);font-weight:800}
-.evidLinksRow{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
-.evidLinkBtn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);color:var(--text);text-decoration:none;font-size:12px;font-weight:700}
-.evidLinkBtn:hover{border-color:var(--accent);color:var(--accent)}
-.firmasGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
-.firmaBox{border:1px solid var(--line);border-radius:11px;padding:10px;background:#fafcfc;text-align:center}
-.firmaBox img{max-height:90px;max-width:100%;object-fit:contain;display:block;margin:6px auto}
 
 @media(max-width:1050px){
  .parcialForm{grid-template-columns:1fr 1fr}
@@ -482,6 +462,8 @@ input::placeholder{color:#9aa8ad}
  #selParcialesRows tr td:nth-child(7){grid-area:date;font-size:11px!important;justify-self:end}
  #selParcialesRows tr td:nth-child(8){grid-area:actions;justify-self:end;padding-top:4px}
 
+ .summaryHeaderControls{width:100%}
+ .summarySearchInput{width:100%;min-width:0;flex:1 1 100%}
  /* Tarjetas de Ítems contados en este recuento (Cantidad Total siempre visible a la derecha) */
  #workSummaryRows tr.item{display:grid;grid-template-columns:1fr auto;grid-template-areas:"code total" "desc total" "cat parc";column-gap:12px;row-gap:3px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:11px 13px;box-shadow:0 2px 7px #26363d08}
  #workSummaryRows tr.item td{border:0;padding:0}
@@ -531,10 +513,6 @@ input::placeholder{color:#9aa8ad}
  #planListRows tr.item td:nth-child(5){grid-area:prio;justify-self:end}
  #planListRows tr.item td:nth-child(6){grid-area:due;justify-self:end}
 
- #vestaRecepcionesArea .metrics{grid-template-columns:repeat(2,minmax(0,1fr))!important}
- .firmasGrid{grid-template-columns:1fr}
- .vestaLoginInline{width:100%}
- .vestaLoginInline input,.vestaLoginInline button{width:100%}
  .detail{padding:15px}
  .photo{max-height:240px}
 }
@@ -588,9 +566,6 @@ input::placeholder{color:#9aa8ad}
    <span class="sideDrawerItemLeft"><span>✨</span><span>Pre-altas pendientes</span></span>
    <span class="badgeCount" id="drawerPrealtasBadge" hidden>0</span>
   </button>
-  <button type="button" class="sideDrawerItem" id="drawerTabMovimientos" data-drawer-view="movimientos" hidden>
-   <span class="sideDrawerItemLeft"><span>📥</span><span>Control de movimientos</span></span>
-  </button>
  </nav>
 
  <div class="sideDrawerFoot">
@@ -631,7 +606,6 @@ input::placeholder{color:#9aa8ad}
    <button class="navTab" id="tabPrealtas" data-view="prealtas">
     Pre-altas pendientes <span class="badgeCount" id="prealtasBadge" hidden>0</span>
    </button>
-   <button class="navTab" id="tabMovimientos" data-view="movimientos">Control de movimientos</button>
   </nav>
 
   <!-- VISTA 1: CATÁLOGO -->
@@ -921,6 +895,7 @@ input::placeholder{color:#9aa8ad}
        <p style="margin:4px 0 0" id="workSummaryMeta">0 ítems con cantidades registradas</p>
       </div>
       <div class="summaryHeaderControls">
+       <input id="workSummarySearch" class="summarySearchInput" type="search" placeholder="Buscar en ítems contados…">
        <select id="workSummarySort" class="summarySortSelect" title="Orden del listado">
         <option value="recent">Orden: Más recientes ↓</option>
         <option value="alpha">Orden: Alfabético (A-Z)</option>
@@ -1064,98 +1039,6 @@ input::placeholder{color:#9aa8ad}
       <tbody id="planListRows"></tbody>
      </table>
      <div class="empty" id="planListEmpty" hidden>No hay tareas que coincidan con los filtros seleccionados.</div>
-    </div>
-   </div>
-  </div>
-
-  <!-- VISTA 5: CONTROL DE MOVIMIENTOS (VESTA) -->
-  <div id="viewMovimientos" hidden>
-   <div class="subNavTabs">
-    <button type="button" class="subNavTab active" data-mov-sub="recepciones">📥 Planillas de recepción</button>
-   </div>
-
-   <div class="vestaAuthBar">
-    <div>
-     <strong style="font-size:14px">Conexión con Vesta</strong>
-     <div id="vestaConnStatus" style="font-size:12px;color:var(--muted);margin-top:2px">Desconectado. Iniciá sesión con tu usuario Auditor de Vesta.</div>
-    </div>
-    <div id="vestaLoginForm" class="vestaLoginInline">
-     <input id="vestaLoginUser" placeholder="Usuario Vesta" autocomplete="off">
-     <input id="vestaLoginPass" type="password" placeholder="Contraseña" autocomplete="off">
-     <button type="button" id="vestaLoginBtn">Conectar Vesta</button>
-    </div>
-    <div id="vestaConnectedActions" style="display:none;gap:8px;align-items:center;flex-wrap:wrap">
-     <button type="button" class="secondary sm" id="vestaRefreshBtn">↻ Actualizar</button>
-     <button type="button" class="secondary sm" id="vestaExportExcelBtn">↓ Excel Vesta</button>
-     <button type="button" class="secondary sm" id="vestaLogoutBtn">Desconectar</button>
-    </div>
-   </div>
-
-   <div id="vestaErrorBox" class="notice warn" hidden></div>
-
-   <div id="vestaRecepcionesArea" hidden>
-    <section class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
-     <div class="metric"><div class="k">Planillas cargadas</div><div class="v" id="vMetTotal">0</div></div>
-     <div class="metric"><div class="k">Con desvíos de cantidad</div><div class="v" id="vMetDesvios" style="color:var(--danger)">0</div></div>
-     <div class="metric"><div class="k">Sin comprobante</div><div class="v" id="vMetSinComp" style="color:var(--warn)">0</div></div>
-     <div class="metric"><div class="k">Sin firmas</div><div class="v" id="vMetSinFirma" style="color:var(--warn)">0</div></div>
-    </section>
-
-    <div class="toolbar">
-     <input id="vFechaInicio" type="date" title="Fecha desde">
-     <input id="vFechaFin" type="date" title="Fecha hasta">
-     <input id="vProveedor" placeholder="Proveedor…" style="min-width:150px">
-     <input id="vDocumento" placeholder="N° documento…" style="min-width:140px">
-     <select id="vTipo">
-      <option value="">Todos los tipos</option>
-      <option value="factura">Factura</option>
-      <option value="remito">Remito</option>
-      <option value="comprobante">Comprobante</option>
-     </select>
-     <select id="vEstado">
-      <option value="">Todos los estados</option>
-      <option value="borrador">Borrador</option>
-      <option value="pendiente_cm">Pendiente CM</option>
-      <option value="solicitud_pago">Solicitud pago</option>
-      <option value="pago_autorizado_dm">Pago autorizado DM</option>
-      <option value="pago_autorizado_fm">Pago autorizado FM</option>
-      <option value="pago_vinculado">Pago vinculado</option>
-      <option value="pago_realizado">Pago realizado</option>
-     </select>
-     <select id="vModo">
-      <option value="historial">Modo: Historial</option>
-      <option value="precarga">Modo: Pre-cargas</option>
-     </select>
-     <button type="button" id="vBuscarBtn">Buscar</button>
-    </div>
-
-    <div class="auditFilterBar" id="vAuditChips">
-     <button type="button" class="auditChipBtn active" data-vaudit="all">Todos</button>
-     <button type="button" class="auditChipBtn" data-vaudit="desvios">⚠ Solo con desvíos</button>
-     <button type="button" class="auditChipBtn" data-vaudit="sin_comp">🚨 Sin comprobante</button>
-     <button type="button" class="auditChipBtn" data-vaudit="sin_firma">✍ Sin firma</button>
-    </div>
-
-    <div class="meta">
-     <span id="vCountLabel">Listo para consultar</span>
-     <span>Tocá una fila para ver ítems, desvíos, comprobantes y firmas</span>
-    </div>
-
-    <div class="tablewrap">
-     <table>
-      <thead>
-       <tr>
-        <th>Fecha recep.</th>
-        <th>Documento</th>
-        <th>Proveedor</th>
-        <th>Estado</th>
-        <th>Ítems / Alertas</th>
-        <th>Evidencias</th>
-       </tr>
-      </thead>
-      <tbody id="vRecepcionesRows"></tbody>
-     </table>
-     <div class="empty" id="vRecepcionesEmpty" hidden>No se encontraron planillas con los filtros actuales.</div>
     </div>
    </div>
   </div>
@@ -1536,33 +1419,6 @@ input::placeholder{color:#9aa8ad}
    <button type="button" class="danger" id="deleteBucketBtn" hidden>Eliminar depósito</button>
   </div>
   <p id="bucketModalError" class="error"></p>
- </div>
-</div>
-
-<!-- MODAL: DETALLE DE PLANILLA DE RECEPCIÓN (VESTA) -->
-<div id="vestaRecepcionModal" class="overlay">
- <div class="dialog wide" style="width:min(980px,100%)">
-  <button class="secondary closeDialog" data-close="vestaRecepcionModal">Cerrar</button>
-  <h2 id="vDetTitle">Planilla de recepción</h2>
-  <p id="vDetMeta" style="margin-bottom:8px">—</p>
-  <div id="vDetEvidLinks" class="evidLinksRow"></div>
-
-  <div class="tablewrap" style="max-height:42vh;margin-top:10px">
-   <table style="min-width:600px">
-    <thead>
-     <tr>
-      <th>Insumo</th>
-      <th>Unidad</th>
-      <th>Cant. Facturada</th>
-      <th>Cant. Real</th>
-      <th>Precio</th>
-     </tr>
-    </thead>
-    <tbody id="vDetItemsRows"></tbody>
-   </table>
-  </div>
-
-  <div id="vDetFirmas" class="firmasGrid"></div>
  </div>
 </div>
 
@@ -2647,22 +2503,18 @@ function switchView(view){
  $('tabRecuentos').classList.toggle('active',view==='recuentos');
  $('tabPrealtas').classList.toggle('active',view==='prealtas');
  $('tabPlanificacion').classList.toggle('active',view==='planificacion');
- $('tabMovimientos').classList.toggle('active',view==='movimientos');
  $('drawerTabCatalogo').classList.toggle('active',view==='catalogo');
  $('drawerTabRecuentos').classList.toggle('active',view==='recuentos');
  $('drawerTabPrealtas').classList.toggle('active',view==='prealtas');
  $('drawerTabPlanificacion').classList.toggle('active',view==='planificacion');
- $('drawerTabMovimientos').classList.toggle('active',view==='movimientos');
  $('viewCatalogo').hidden=view!=='catalogo';
  $('viewRecuentos').hidden=view!=='recuentos';
  $('viewPrealtas').hidden=view!=='prealtas';
  $('viewPlanificacion').hidden=view!=='planificacion';
- $('viewMovimientos').hidden=view!=='movimientos';
  closeSideDrawer();
  if(view==='recuentos')loadRecuentos();
  if(view==='prealtas')loadPrealtasInbox();
  if(view==='planificacion')loadPlannerModule();
- if(view==='movimientos')initMovimientosView();
 }
 
 async function connect(){
@@ -2775,7 +2627,6 @@ async function loadData(){
   $('drawerTabRecuentos').hidden=!isEditor;
   $('drawerTabPrealtas').hidden=!isEditor;
   $('drawerTabPlanificacion').hidden=!isEditor;
-  $('drawerTabMovimientos').hidden=!isEditor;
   $('drawerModeLabel').textContent=isEditor?'Modo editor habilitado':'Modo consulta pública';
   $('newArticle').hidden=!isEditor;
   $('loadPhotosWrap').hidden=!isEditor;
@@ -4058,6 +3909,7 @@ async function openRecuentoWork(r){
  $('recuentosListPanel').hidden=true;
  $('recuentoWorkPanel').hidden=false;
  $('workRecNombre').textContent=r.nombre;
+ if($('workSummarySearch'))$('workSummarySearch').value='';
  $('workRecEstado').innerHTML=recEstadoPill(r.estado);
  $('workRecMeta').textContent=
   `Auditor/Auditores: ${r.responsable||'—'} · Creado: ${formatDate(r.creado_en)}`+
@@ -4097,6 +3949,7 @@ function closeRecuentoWork(){
  signedFotoUrls={};
  clearPendingParcialPhoto();
  $('recArtSearch').value='';
+ if($('workSummarySearch'))$('workSummarySearch').value='';
  $('recSearchResults').hidden=true;
  $('selectedRecArticleBox').hidden=true;
  $('recuentoWorkPanel').hidden=true;
@@ -6339,14 +6192,27 @@ async function deleteParcial(p){
 
 function renderWorkSummary(){
  const sortMode=$('workSummarySort')?.value||'recent';
+ const qSummary=($('workSummarySearch')?.value||'').trim().toLocaleLowerCase('es');
  const items=buildRecuentoConsolidatedItems(workRecuentoArticulos,workParciales,workPrealtas,sortMode);
  const grandTotal=items.reduce((acc,x)=>acc+x.total,0);
 
- $('workSummaryMeta').textContent=`${items.length} ítem(s) con cantidades registradas`;
- $('workGrandTotal').textContent=formatQty(grandTotal);
- $('workSummaryEmpty').hidden=items.length!==0;
+ const visibleItems=qSummary
+  ? items.filter(x=>
+     [x.codigo,x.descripcion,x.descripcionOriginal,x.categoria,x.esPrealta==='Sí'?'pre-alta prealta':'']
+      .some(v=>(v||'').toLocaleLowerCase('es').includes(qSummary))
+    )
+  : items;
 
- $('workSummaryRows').innerHTML=items.map(x=>{
+ $('workSummaryMeta').textContent=qSummary
+  ? `${visibleItems.length} de ${items.length} ítem(s) encontrados`
+  : `${items.length} ítem(s) con cantidades registradas`;
+ $('workGrandTotal').textContent=formatQty(grandTotal);
+ $('workSummaryEmpty').hidden=visibleItems.length!==0;
+ $('workSummaryEmpty').textContent=(qSummary && items.length>0)
+  ? 'No se encontraron ítems contados que coincidan con la búsqueda.'
+  : 'Aún no se cargaron artículos ni pre-altas en este recuento. Usá el buscador superior para comenzar.';
+
+ $('workSummaryRows').innerHTML=visibleItems.map(x=>{
   const codeBadge=x.kind==='catalogo'
    ? `<span class="code">${esc(x.codigo)}</span>`
    : `<span class="pill prealta">${x.codigo!=='PRE-ALTA'?'PRE-ALTA → '+esc(x.codigo):'PRE-ALTA ('+esc(x.estadoPrealta)+')'}</span>`;
@@ -7754,6 +7620,7 @@ $('recArtSearch').addEventListener('input',()=>{
  recArtSearchTimer=setTimeout(handleRecArtSearch,140);
 });
 $('workSummarySort').addEventListener('change',renderWorkSummary);
+$('workSummarySearch').addEventListener('input',renderWorkSummary);
 $('clearRecArtSearch').addEventListener('click',()=>{
  $('recArtSearch').value='';
  handleRecArtSearch();
@@ -8407,324 +8274,6 @@ if('serviceWorker' in navigator && (location.protocol==='https:' || location.hos
   navigator.serviceWorker.register('./sw.js').catch(err=>console.warn('SW no registrado:',err));
  });
 }
-
-/* =========================================================
-   MÓDULO CONTROL DE MOVIMIENTOS · CONECTOR VESTA
-   ========================================================= */
-const VESTA_API_URL='https://vesta-back-424032572499.us-central1.run.app/api';
-const VESTA_STORAGE_KEY='hotelito_vesta_session';
-
-let vestaSession=null;
-let vestaRecepcionesRaw=[];
-let vestaAuditFilter='all';
-
-function loadVestaSession(){
- try{
-  const raw=localStorage.getItem(VESTA_STORAGE_KEY);
-  vestaSession=raw?JSON.parse(raw):null;
- }catch{vestaSession=null;}
-}
-
-function saveVestaSession(sess){
- vestaSession=sess;
- try{
-  if(sess)localStorage.setItem(VESTA_STORAGE_KEY,JSON.stringify(sess));
-  else localStorage.removeItem(VESTA_STORAGE_KEY);
- }catch{}
-}
-
-function updateVestaAuthUI(){
- const connected=!!vestaSession?.accessToken;
- $('vestaLoginForm').style.display=connected?'none':'flex';
- $('vestaConnectedActions').style.display=connected?'flex':'none';
- $('vestaRecepcionesArea').hidden=!connected;
- if(connected){
-  const u=vestaSession.user||{};
-  const nombre=u.nombre||u.login||u.usuario||'Auditor';
-  const rol=u.rol||u.id_rol||'';
-  $('vestaConnStatus').innerHTML=`<span style="color:var(--accent2);font-weight:700">● Conectado a Vesta</span> como <strong>${esc(nombre)}</strong>${rol?` (${esc(rol)})`:''}`;
- }else{
-  $('vestaConnStatus').textContent='Desconectado. Iniciá sesión con tu usuario Auditor de Vesta.';
- }
-}
-
-function showVestaError(msg){
- const box=$('vestaErrorBox');
- if(!msg){box.hidden=true;box.textContent='';return;}
- box.hidden=false;
- box.textContent=msg;
-}
-
-async function vestaLogin(){
- const login=$('vestaLoginUser').value.trim();
- const password=$('vestaLoginPass').value;
- showVestaError('');
- if(!login||!password){
-  showVestaError('Ingresá usuario y contraseña de Vesta.');
-  return;
- }
- const btn=$('vestaLoginBtn');
- btn.disabled=true;
- try{
-  const res=await fetch(`${VESTA_API_URL}/auth/login`,{
-   method:'POST',
-   headers:{'Content-Type':'application/json'},
-   body:JSON.stringify({login,password})
-  });
-  const json=await res.json().catch(()=>({}));
-  if(!res.ok)throw new Error(json.message||json.error||`Error HTTP ${res.status}`);
-  const d=json.data||json;
-  if(!d.accessToken)throw new Error('Vesta no devolvió un accessToken válido.');
-  saveVestaSession({accessToken:d.accessToken,refreshToken:d.refreshToken||null,user:d.user||{login}});
-  $('vestaLoginPass').value='';
-  updateVestaAuthUI();
-  await loadVestaRecepciones();
- }catch(e){
-  showVestaError('No se pudo conectar a Vesta: '+(e.message||e));
- }finally{
-  btn.disabled=false;
- }
-}
-
-function vestaLogout(){
- saveVestaSession(null);
- vestaRecepcionesRaw=[];
- updateVestaAuthUI();
- showVestaError('');
-}
-
-async function vestaFetch(path,options={},retry=true){
- if(!vestaSession?.accessToken)throw new Error('Sesión de Vesta no iniciada.');
- const headers={...(options.headers||{}),'Authorization':`Bearer ${vestaSession.accessToken}`};
- const res=await fetch(`${VESTA_API_URL}${path}`,{...options,headers});
- if(res.status===401 && retry && vestaSession.refreshToken){
-  const rRef=await fetch(`${VESTA_API_URL}/auth/refresh`,{
-   method:'POST',
-   headers:{'Content-Type':'application/json'},
-   body:JSON.stringify({refreshToken:vestaSession.refreshToken})
-  });
-  if(rRef.ok){
-   const jRef=await rRef.json().catch(()=>({}));
-   const dRef=jRef.data||jRef;
-   if(dRef.accessToken){
-    saveVestaSession({...vestaSession,accessToken:dRef.accessToken,refreshToken:dRef.refreshToken||vestaSession.refreshToken});
-    return vestaFetch(path,options,false);
-   }
-  }
-  vestaLogout();
-  throw new Error('Tu sesión en Vesta expiró. Volvé a iniciar sesión.');
- }
- return res;
-}
-
-function buildVestaQueryParams(extra={}){
- const p=new URLSearchParams();
- const map={
-  modo:$('vModo').value||'historial',
-  fechaInicio:$('vFechaInicio').value,
-  fechaFin:$('vFechaFin').value,
-  nombre_proveedor:$('vProveedor').value.trim(),
-  numero_documento:$('vDocumento').value.trim(),
-  tipo:$('vTipo').value,
-  estado:$('vEstado').value,
-  ...extra
- };
- Object.entries(map).forEach(([k,v])=>{if(v!==undefined&&v!==null&&v!=='')p.set(k,String(v));});
- return p.toString();
-}
-
-function analyzeVestaRecepcion(r){
- const items=Array.isArray(r.items)?r.items:[];
- const desvios=items.filter(it=>it.cantidad_real!=null && Number(it.cantidad)!==Number(it.cantidad_real)).length;
- const sinComp=!r.url_comprobante;
- const sinFirma=!r.firma_entrega || !r.firma_recepcion;
- return {itemsCount:items.length,desvios,sinComp,sinFirma};
-}
-
-async function loadVestaRecepciones(){
- if(!vestaSession?.accessToken)return;
- showVestaError('');
- $('vCountLabel').textContent='Consultando planillas en Vesta…';
- $('vBuscarBtn').disabled=true;
- try{
-  const qs=buildVestaQueryParams({page:1,limit:200});
-  const res=await vestaFetch(`/planilla-recepcion/historial?${qs}`);
-  const json=await res.json().catch(()=>({}));
-  if(!res.ok)throw new Error(json.message||json.error||`Error HTTP ${res.status}`);
-  const payload=json.data||json;
-  const list=Array.isArray(payload)?payload:(payload.historial||payload.items||payload.rows||payload.registros||[]);
-  vestaRecepcionesRaw=Array.isArray(list)?list:[];
-  renderVestaRecepciones();
- }catch(e){
-  showVestaError('Error al consultar planillas: '+(e.message||e));
-  $('vCountLabel').textContent='Error de consulta';
- }finally{
-  $('vBuscarBtn').disabled=false;
- }
-}
-
-function renderVestaRecepciones(){
- let cDesv=0, cSinComp=0, cSinFirma=0;
- vestaRecepcionesRaw.forEach(r=>{
-  const a=analyzeVestaRecepcion(r);
-  if(a.desvios>0)cDesv++;
-  if(a.sinComp)cSinComp++;
-  if(a.sinFirma)cSinFirma++;
- });
- $('vMetTotal').textContent=vestaRecepcionesRaw.length;
- $('vMetDesvios').textContent=cDesv;
- $('vMetSinComp').textContent=cSinComp;
- $('vMetSinFirma').textContent=cSinFirma;
-
- const list=vestaRecepcionesRaw.filter(r=>{
-  const a=analyzeVestaRecepcion(r);
-  if(vestaAuditFilter==='desvios')return a.desvios>0;
-  if(vestaAuditFilter==='sin_comp')return a.sinComp;
-  if(vestaAuditFilter==='sin_firma')return a.sinFirma;
-  return true;
- });
-
- $('vCountLabel').textContent=`${list.length} planilla(s) en vista (de ${vestaRecepcionesRaw.length} traídas de Vesta)`;
- $('vRecepcionesEmpty').hidden=list.length!==0;
-
- $('vRecepcionesRows').innerHTML=list.map((r,idx)=>{
-  const a=analyzeVestaRecepcion(r);
-  const alerts=[];
-  if(a.desvios>0)alerts.push(`<span class="pill inactive">⚠ ${a.desvios} desvío(s)</span>`);
-  if(a.sinComp)alerts.push('<span class="pill no">Sin comprobante</span>');
-  if(a.sinFirma)alerts.push('<span class="pill no">Sin firma</span>');
-  if(!alerts.length)alerts.push('<span class="pill">OK</span>');
-
-  const evids=[];
-  if(r.url_comprobante)evids.push('📄 Comp.');
-  if(r.url_factura_pago)evids.push('🧾 Fact.');
-  if(r.url_autorizacion_dm)evids.push('✅ Aut.DM');
-  if(r.url_comprobante_pago)evids.push('💳 Pago');
-
-  return `
-   <tr class="item" data-vrec-idx="${idx}">
-    <td>${esc((r.fecha_recepcion||r.fecha_documento||'—').slice(0,10))}</td>
-    <td>
-     <strong class="code">${esc(r.numero_documento||'S/N')}</strong>
-     <div style="font-size:11px;color:var(--muted);text-transform:uppercase">${esc(r.tipo_ingreso||'—')}</div>
-    </td>
-    <td><strong>${esc(r.proveedor_nombre||r.nombre_proveedor||'—')}</strong></td>
-    <td><span class="pill prealta">${esc(r.estado||'—')}</span></td>
-    <td>
-     <div style="font-size:12px;margin-bottom:4px">${a.itemsCount} ítem(s)</div>
-     <div style="display:flex;gap:4px;flex-wrap:wrap">${alerts.join('')}</div>
-    </td>
-    <td style="font-size:12px;color:var(--muted)">${evids.length?evids.join(' · '):'—'}</td>
-   </tr>
-  `;
- }).join('');
-
- $('vRecepcionesRows').querySelectorAll('[data-vrec-idx]').forEach(tr=>{
-  tr.onclick=()=>openVestaRecepcionDetail(list[Number(tr.dataset.vrecIdx)]);
- });
-}
-
-function openVestaRecepcionDetail(r){
- if(!r)return;
- $('vDetTitle').textContent=`${(r.tipo_ingreso||'Planilla').toUpperCase()} ${r.numero_documento||'S/N'} · ${r.proveedor_nombre||r.nombre_proveedor||'Proveedor'}`;
- $('vDetMeta').textContent=`Fecha doc.: ${(r.fecha_documento||'—').slice(0,10)} · Fecha recepción: ${(r.fecha_recepcion||'—').slice(0,10)} · Estado: ${r.estado||'—'}`;
-
- const links=[
-  {url:r.url_comprobante,label:'📄 Ver comprobante recepción'},
-  {url:r.url_factura_pago,label:'🧾 Ver factura de pago'},
-  {url:r.url_autorizacion_dm,label:'✅ Ver autorización DM'},
-  {url:r.url_comprobante_pago,label:'💳 Ver comprobante de pago'}
- ].filter(x=>x.url);
-
- $('vDetEvidLinks').innerHTML=links.length
-  ? links.map(l=>`<a class="evidLinkBtn" href="${esc(l.url)}" target="_blank" rel="noopener">${l.label}</a>`).join('')
-  : '<span class="pill no">Sin archivos adjuntos en esta planilla</span>';
-
- const items=Array.isArray(r.items)?r.items:[];
- $('vDetItemsRows').innerHTML=items.length
-  ? items.map(it=>{
-     const hasDiff=it.cantidad_real!=null && Number(it.cantidad)!==Number(it.cantidad_real);
-     return `
-      <tr>
-       <td><strong>${esc(it.nombre_insumo||it.insumo||'—')}</strong></td>
-       <td>${esc(it.unidad_medida||it.unidad||'—')}</td>
-       <td class="num">${hasDiff?`<span class="qtyOld">${formatQty(it.cantidad)}</span>`:formatQty(it.cantidad)}</td>
-       <td class="num ${hasDiff?'qtyDiff':''}">${it.cantidad_real!=null?formatQty(it.cantidad_real):'—'}</td>
-       <td class="num">${it.precio!=null?'$ '+formatQty(it.precio):'—'}</td>
-      </tr>
-     `;
-    }).join('')
-  : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Sin ítems detallados</td></tr>';
-
- $('vDetFirmas').innerHTML=`
-  <div class="firmaBox">
-   <div style="font-size:11px;color:var(--muted);font-weight:700">FIRMA ENTREGA</div>
-   ${r.firma_entrega?`<img src="${esc(r.firma_entrega)}" alt="Firma entrega">`:'<div style="padding:18px;color:var(--warn);font-size:12px">Sin firma</div>'}
-   <div style="font-size:12px;font-weight:600">${esc(r.aclaracion_entrega||'—')}</div>
-  </div>
-  <div class="firmaBox">
-   <div style="font-size:11px;color:var(--muted);font-weight:700">FIRMA RECEPCIÓN</div>
-   ${r.firma_recepcion?`<img src="${esc(r.firma_recepcion)}" alt="Firma recepción">`:'<div style="padding:18px;color:var(--warn);font-size:12px">Sin firma</div>'}
-   <div style="font-size:12px;font-weight:600">${esc(r.aclaracion_recepcion||'—')}</div>
-  </div>
- `;
-
- show('vestaRecepcionModal');
-}
-
-async function exportVestaRecepcionesExcel(){
- if(!vestaSession?.accessToken)return;
- const btn=$('vestaExportExcelBtn');
- btn.disabled=true;
- try{
-  const qs=buildVestaQueryParams();
-  const res=await vestaFetch(`/planilla-recepcion/exportar-historial?${qs}`);
-  if(!res.ok)throw new Error(`Error HTTP ${res.status}`);
-  const blob=await res.blob();
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=`Vesta_Planillas_Recepcion_${new Date().toISOString().slice(0,10)}.xlsx`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url),4000);
- }catch(e){
-  showVestaError('No se pudo descargar el Excel de Vesta: '+(e.message||e));
- }finally{
-  btn.disabled=false;
- }
-}
-
-function initMovimientosView(){
- loadVestaSession();
- updateVestaAuthUI();
- if(!$('vFechaFin').value){
-  const hoy=new Date();
-  const hace15=new Date(hoy.getTime()-15*86400000);
-  $('vFechaFin').value=hoy.toISOString().slice(0,10);
-  $('vFechaInicio').value=hace15.toISOString().slice(0,10);
- }
- if(vestaSession?.accessToken && !vestaRecepcionesRaw.length){
-  loadVestaRecepciones();
- }
-}
-
-$('tabMovimientos').addEventListener('click',()=>switchView('movimientos'));
-$('drawerTabMovimientos').addEventListener('click',()=>switchView('movimientos'));
-$('vestaLoginBtn').addEventListener('click',vestaLogin);
-$('vestaLoginPass').addEventListener('keydown',e=>{if(e.key==='Enter')vestaLogin();});
-$('vestaLogoutBtn').addEventListener('click',vestaLogout);
-$('vestaRefreshBtn').addEventListener('click',loadVestaRecepciones);
-$('vBuscarBtn').addEventListener('click',loadVestaRecepciones);
-$('vestaExportExcelBtn').addEventListener('click',exportVestaRecepcionesExcel);
-document.querySelectorAll('#vAuditChips [data-vaudit]').forEach(btn=>{
- btn.addEventListener('click',()=>{
-  vestaAuditFilter=btn.dataset.vaudit;
-  document.querySelectorAll('#vAuditChips [data-vaudit]').forEach(b=>b.classList.toggle('active',b===btn));
-  renderVestaRecepciones();
- });
-});
 
 cfgLoad();
 </script>
