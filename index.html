@@ -142,7 +142,15 @@ input::placeholder{color:#9aa8ad}
 .card h2{font:700 18px Manrope;margin:0 0 6px}
 .card h3{font:700 16px Manrope;margin:0 0 8px}
 .card p{color:var(--muted);font-size:13px;margin:0 0 14px}
-.formGrid{display:grid;grid-template-columns:1.5fr 1fr auto;gap:10px;align-items:end}
+.formGrid{display:grid;grid-template-columns:1.3fr 1fr 1.1fr auto;gap:10px;align-items:end}
+.formGrid select{width:100%}
+.refInlineBadge{font-size:11.5px;color:var(--muted);font-weight:600;margin-top:3px;white-space:nowrap}
+.refInlineBadge b{color:var(--text)}
+.refInlineBadge .diffPos{color:var(--accent2)}
+.refInlineBadge .diffNeg{color:var(--danger)}
+.refPillMini{display:inline-block;padding:3px 7px;border-radius:99px;font-size:10.5px;background:#eef4f8;color:#335b7a;font-weight:700;margin-right:5px}
+.workRefBar{display:inline-flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap}
+.workRefSelect{padding:5px 9px;font-size:12px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);color:var(--text);max-width:290px}
 .formGrid label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
 .formGrid input{width:100%}
 .recHeader{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:16px}
@@ -726,7 +734,7 @@ input::placeholder{color:#9aa8ad}
       <span>+ Nuevo recuento físico</span>
       <span id="toggleNewRecCardIcon">▾</span>
      </button>
-     <p style="margin-top:8px">Creá un inventario independiente. Cada recuento conserva su historial y no se elimina. Funciona incluso sin conexión.</p>
+     <p style="margin-top:8px">Creá un inventario independiente (opcionalmente con un recuento de referencia para comparar cantidades al instante). Funciona incluso sin conexión.</p>
      <div class="formGrid">
       <div>
        <label for="recNombre">Nombre del recuento *</label>
@@ -735,6 +743,12 @@ input::placeholder{color:#9aa8ad}
       <div>
        <label for="recResponsable">Auditor / Responsable *</label>
        <input id="recResponsable" maxlength="120" placeholder="Nombre y apellido del auditor">
+      </div>
+      <div>
+       <label for="recReferenciaSelect">Recuento de referencia (opcional)</label>
+       <select id="recReferenciaSelect">
+        <option value="">Sin referencia</option>
+       </select>
       </div>
       <button id="createRecuentoBtn">+ Crear recuento</button>
      </div>
@@ -787,6 +801,12 @@ input::placeholder{color:#9aa8ad}
         <span id="workRecEstado"></span>
        </div>
        <p id="workRecMeta" style="margin:6px 0 0">—</p>
+       <div class="workRefBar">
+        <span style="font-size:11.5px;color:var(--muted);font-weight:600">Referencia:</span>
+        <select id="workRefSelect" class="workRefSelect" title="Recuento de referencia para comparar cantidades">
+         <option value="">Sin referencia</option>
+        </select>
+       </div>
       </div>
       <div class="recHeaderActions" style="display:flex;gap:8px;flex-wrap:wrap">
        <button class="secondary" id="exportRecuentoExcelBtn">↓ Excel</button>
@@ -840,6 +860,7 @@ input::placeholder{color:#9aa8ad}
          <div style="text-align:right">
           <div style="font-size:11px;color:var(--muted);text-transform:uppercase">Total contado</div>
           <div id="selArtTotal" style="font:800 24px Manrope;color:var(--accent)">0</div>
+          <div id="selArtRefInfo" class="refInlineBadge" hidden></div>
           <button class="secondary sm" id="closeSelectedArt" style="margin-top:6px">Cerrar ficha</button>
          </div>
         </div>
@@ -1718,6 +1739,12 @@ let currentUser=null, isEditor=false, editingCode=null, selectedArticle=null;
 let activeView='planificacion', hasInitialEditorLanding=false, recuentos=[], activeRecuento=null;
 let selectedRecuentoIds=new Set();
 let workRecuentoArticulos=[], workParciales=[], workPrealtas=[], workFotos=[], signedFotoUrls={};
+ workRefRecuento=null;
+ workRefItems=[];
+ workRefByCode=new Map();
+ workRefByDesc=new Map();
+const REC_REF_STORAGE_KEY='hotelito_recuento_refs';
+let workRefRecuento=null, workRefItems=[], workRefByCode=new Map(), workRefByDesc=new Map();
 let selectedRecItem=null;
 let editingParcial=null, editingParcialTargetItem=null, pendingNewParcialFile=null, pendingPrealtaFile=null, targetParcialForPhoto=null;
 let recArtSearchTimer=null, parcialToastTimer=null;
@@ -3802,6 +3829,85 @@ async function refreshPendingPrealtasBadge(){
  }catch{}
 }
 
+function getRecRefMap(){
+ try{return JSON.parse(localStorage.getItem(REC_REF_STORAGE_KEY)||'{}');}
+ catch{return {};}
+}
+
+function getRecuentoRefId(recId){
+ if(!recId)return '';
+ return getRecRefMap()[recId]||'';
+}
+
+function setRecuentoRefId(recId,refId){
+ if(!recId)return;
+ const map=getRecRefMap();
+ if(refId)map[recId]=refId;
+ else delete map[recId];
+ try{localStorage.setItem(REC_REF_STORAGE_KEY,JSON.stringify(map));}catch{}
+}
+
+function populateRecuentoRefSelectors(){
+ const newSel=$('recReferenciaSelect');
+ if(newSel){
+  const prev=newSel.value;
+  newSel.innerHTML='<option value="">Sin referencia</option>'+recuentos
+   .filter(r=>!r._offlinePending)
+   .map(r=>`<option value="${esc(r.id)}">${esc(r.nombre)} (${esc(r.estado)})</option>`)
+   .join('');
+  if(prev && recuentos.some(r=>r.id===prev))newSel.value=prev;
+ }
+ const workSel=$('workRefSelect');
+ if(workSel && activeRecuento){
+  const currentRef=getRecuentoRefId(activeRecuento.id);
+  workSel.innerHTML='<option value="">Sin referencia</option>'+recuentos
+   .filter(r=>r.id!==activeRecuento.id && !r._offlinePending)
+   .map(r=>`<option value="${esc(r.id)}">${esc(r.nombre)} (${esc(r.estado)})</option>`)
+   .join('');
+  workSel.value=(currentRef && recuentos.some(r=>r.id===currentRef))?currentRef:'';
+ }
+}
+
+function getRefQtyForArticle(codigo,desc=''){
+ if(!workRefRecuento)return null;
+ if(codigo && codigo!=='PRE-ALTA' && workRefByCode.has(codigo)){
+  return workRefByCode.get(codigo);
+ }
+ const nd=(desc||'').trim().toLocaleLowerCase('es');
+ if(nd && workRefByDesc.has(nd)){
+  return workRefByDesc.get(nd);
+ }
+ return 0;
+}
+
+async function loadWorkReferenceData(){
+ workRefRecuento=null;
+ workRefItems=[];
+ workRefByCode=new Map();
+ workRefByDesc=new Map();
+ if(!activeRecuento)return;
+ const refId=getRecuentoRefId(activeRecuento.id);
+ if(!refId || refId===activeRecuento.id)return;
+ const refRec=recuentos.find(r=>r.id===refId);
+ if(!refRec)return;
+ try{
+  const det=await fetchFullRecuentoDetails(refId);
+  workRefRecuento=refRec;
+  workRefItems=det.items||[];
+  workRefItems.forEach(it=>{
+   if(it.codigo && it.codigo!=='PRE-ALTA'){
+    workRefByCode.set(it.codigo,(workRefByCode.get(it.codigo)||0)+it.total);
+   }
+   const nd=(it.descripcion||'').trim().toLocaleLowerCase('es');
+   if(nd){
+    workRefByDesc.set(nd,(workRefByDesc.get(nd)||0)+it.total);
+   }
+  });
+ }catch(e){
+  console.warn('No se pudo cargar el recuento de referencia:',e);
+ }
+}
+
 async function loadRecuentos(){
  if(!isEditor)return;
  $('recCount').textContent='Cargando recuentos…';
@@ -3879,6 +3985,9 @@ function renderRecuentos(){
  $('recRows').innerHTML=list.map(r=>{
   const canConsolidate=r.estado==='abierto' && !r._offlinePending;
   const checked=canConsolidate && selectedRecuentoIds.has(r.id)?'checked':'';
+  const isOpenRec=r.estado==='abierto';
+  const refId=getRecuentoRefId(r.id);
+  const refObj=refId?recuentos.find(x=>x.id===refId):null;
   return `
    <tr class="item" data-rec-id="${esc(r.id)}">
     <td data-chk-cell="1">
@@ -3889,14 +3998,16 @@ function renderRecuentos(){
     <td>
      <strong>${esc(r.nombre)}</strong>
      ${r._offlinePending?'<span class="syncTag">Pendiente sync</span>':''}
+     ${refObj?`<div style="font-size:11px;color:var(--muted);margin-top:2px">Ref: ${esc(refObj.nombre)}</div>`:''}
     </td>
     <td>${esc(r.responsable||'—')}</td>
     <td>${formatDate(r.creado_en)}</td>
     <td>${recEstadoPill(r.estado)}</td>
     <td data-act-cell="1">
-     <div style="display:flex;gap:6px;flex-wrap:wrap">
+     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
       <button type="button" class="secondary sm" data-dl-excel="${esc(r.id)}">Excel</button>
       <button type="button" class="secondary sm" data-dl-pdf="${esc(r.id)}">PDF</button>
+      ${isOpenRec?`<button type="button" class="iconDelBtn" data-del-rec="${esc(r.id)}" title="Eliminar recuento abierto">🗑</button>`:''}
      </div>
     </td>
    </tr>
@@ -3944,6 +4055,77 @@ function renderRecuentos(){
    finally{btn.disabled=false;}
   });
  });
+
+ document.querySelectorAll('[data-del-rec]').forEach(btn=>{
+  btn.addEventListener('click',async e=>{
+   e.stopPropagation();
+   const rec=recuentos.find(x=>x.id===btn.dataset.delRec);
+   if(rec)await deleteOpenRecuento(rec,btn);
+  });
+ });
+
+ populateRecuentoRefSelectors();
+}
+
+async function deleteOpenRecuento(rec,btnEl=null){
+ if(!isEditor||!rec)return;
+ if(rec.estado!=='abierto'){
+  alert('Solo se pueden eliminar recuentos en estado Abierto. Los recuentos consolidados o cerrados están protegidos.');
+  return;
+ }
+
+ const ok=confirm(
+  `¿ELIMINAR DEFINITIVAMENTE EL RECUENTO ABIERTO "${rec.nombre}"?\n\n`+
+  `• Se borrarán todos sus parciales, pre-altas y registros asociados.\n`+
+  `• Esta acción es irreversible.`
+ );
+ if(!ok)return;
+
+ if(btnEl)btnEl.disabled=true;
+
+ try{
+  // Limpiar operaciones pendientes locales de este recuento en IndexedDB
+  const {ops,photos}=await getPendingQueues();
+  for(const o of ops.filter(x=>x.recuento_id===rec.id)){
+   await idbDelete('sync_queue',o.op_id);
+  }
+  for(const ph of photos.filter(x=>x.recuento_id===rec.id)){
+   await idbDelete('photo_queue',ph.photo_op_id);
+  }
+  await idbDelete('recuento_snapshots',rec.id).catch(()=>{});
+  setRecuentoRefId(rec.id,'');
+  selectedRecuentoIds.delete(rec.id);
+
+  if(!rec._offlinePending){
+   if(!navigator.onLine){
+    throw new Error('Necesitás conexión a internet para eliminar un recuento ya sincronizado en el servidor.');
+   }
+   const {data,error}=await sb
+    .from('recuentos')
+    .delete()
+    .eq('id',rec.id)
+    .eq('estado','abierto')
+    .select('id');
+
+   if(error)throw error;
+   if(!data || !data.length){
+    throw new Error('Supabase no permitió eliminar el recuento. Verificá haber ejecutado el SQL de permiso DELETE para recuentos abiertos.');
+   }
+  }
+
+  if(activeRecuento && activeRecuento.id===rec.id){
+   closeRecuentoWork();
+  }else{
+   await loadRecuentos();
+  }
+  await updateSyncIndicator();
+  await refreshPendingPrealtasBadge();
+
+ }catch(e){
+  console.error('Error al eliminar recuento:',e);
+  if(btnEl)btnEl.disabled=false;
+  alert('No se pudo eliminar el recuento:\n\n'+(e.message||e));
+ }
 }
 
 function recEstadoPill(estado){
@@ -3993,7 +4175,11 @@ async function createRecuento(){
    payload:newRecObj
   });
 
+  const chosenRefId=$('recReferenciaSelect')?.value||'';
+  if(chosenRefId)setRecuentoRefId(newRecObj.id,chosenRefId);
+
   $('recNombre').value='';
+  if($('recReferenciaSelect'))$('recReferenciaSelect').value='';
   await loadRecuentos();
   await openRecuentoWork(newRecObj);
 
@@ -4122,6 +4308,8 @@ async function openRecuentoWork(r){
  $('addParcialSection').style.display=isOpen?'grid':'none';
  $('thParcialActions').hidden=!isOpen;
 
+ populateRecuentoRefSelectors();
+ await loadWorkReferenceData();
  await loadWorkRecuentoData();
  await updateSyncIndicator();
 }
@@ -4422,12 +4610,59 @@ async function fetchFullRecuentoDetails(recuentoId){
  };
 }
 
-function generateExcelForSingleRecuento(rec,items){
+function mergeItemsWithReference(items,refItems){
+ if(!refItems || !refItems.length){
+  return items.map(it=>({...it,refTotal:0,diff:it.total}));
+ }
+ const map=new Map();
+ const keyOf=it=>(it.codigo && it.codigo!=='PRE-ALTA')
+  ? `COD:${it.codigo}`
+  : `DESC:${(it.descripcion||'').trim().toLocaleLowerCase('es')}`;
+
+ items.forEach(it=>{
+  const k=keyOf(it);
+  map.set(k,{...it,refTotal:0});
+ });
+
+ refItems.forEach(rit=>{
+  const k=keyOf(rit);
+  if(map.has(k)){
+   const cur=map.get(k);
+   cur.refTotal=Math.round((cur.refTotal+Number(rit.total||0))*1000)/1000;
+  }else{
+   map.set(k,{
+    kind:rit.kind,
+    prealtaId:null,
+    codigo:rit.codigo,
+    descripcion:rit.descripcion,
+    descripcionOriginal:'',
+    categoria:rit.categoria||'Sin categoría',
+    esPrealta:'No',
+    estadoPrealta:'Solo en referencia',
+    parciales:[],
+    total:0,
+    refTotal:Number(rit.total||0),
+    sortKey:rit.sortKey||rit.codigo
+   });
+  }
+ });
+
+ const merged=[...map.values()].map(x=>({
+  ...x,
+  diff:Math.round((Number(x.total||0)-Number(x.refTotal||0))*1000)/1000
+ }));
+ merged.sort((a,b)=>(a.sortKey||'').localeCompare(b.sortKey||'','es'));
+ return merged;
+}
+
+function generateExcelForSingleRecuento(rec,items,refRec=null,refItems=null){
  if(!window.XLSX){
   alert('No se pudo cargar la librería de Excel (SheetJS).');
   return;
  }
- if(!items.length){
+ const hasRef=!!(refRec && refItems);
+ const summaryItems=hasRef?mergeItemsWithReference(items,refItems):items;
+ if(!summaryItems.length){
   alert('Este recuento todavía no tiene cantidades registradas para exportar.');
   return;
  }
@@ -4441,11 +4676,25 @@ function generateExcelForSingleRecuento(rec,items){
   ['Fecha de creación:',formatDate(rec.creado_en)],
   ['Estado:',rec.estado.toUpperCase()],
   ['Fecha de cierre:',rec.cerrado_en?formatDate(rec.cerrado_en):'—'],
+  ...(hasRef?[['Recuento de referencia:',refRec.nombre]]:[]),
   [],
-  ['Código','Descripción','Categoría','Cantidad Total','Cant. Parciales','Es Pre-alta','Estado Pre-alta','Descripción Original (Pre-alta)']
+  hasRef
+   ? ['Código','Descripción','Categoría','Cantidad Total','Cant. Referencia','Diferencia','Cant. Parciales','Es Pre-alta','Estado Pre-alta','Descripción Original (Pre-alta)']
+   : ['Código','Descripción','Categoría','Cantidad Total','Cant. Parciales','Es Pre-alta','Estado Pre-alta','Descripción Original (Pre-alta)']
  ];
 
- const resumenBody=items.map(it=>[
+ const resumenBody=summaryItems.map(it=>hasRef?[
+  it.codigo,
+  it.descripcion,
+  it.categoria,
+  it.total,
+  it.refTotal,
+  it.diff,
+  it.parciales.length,
+  it.esPrealta,
+  it.estadoPrealta,
+  it.esPrealta==='Sí'?(it.descripcionOriginal||''):''
+ ]:[
   it.codigo,
   it.descripcion,
   it.categoria,
@@ -4457,9 +4706,9 @@ function generateExcelForSingleRecuento(rec,items){
  ]);
 
  const wsResumen=XLSX.utils.aoa_to_sheet([...resumenHeader,...resumenBody]);
- wsResumen['!cols']=[
-  {wch:18},{wch:44},{wch:24},{wch:16},{wch:15},{wch:13},{wch:18},{wch:40}
- ];
+ wsResumen['!cols']=hasRef
+  ? [{wch:18},{wch:44},{wch:24},{wch:15},{wch:16},{wch:14},{wch:14},{wch:12},{wch:18},{wch:38}]
+  : [{wch:18},{wch:44},{wch:24},{wch:16},{wch:15},{wch:13},{wch:18},{wch:40}];
  XLSX.utils.book_append_sheet(wb,wsResumen,'Resumen');
 
  const detalleHeader=[
@@ -4604,13 +4853,23 @@ function generateSignablePdfReport({tituloRecuento,auditores,fechaCreacion,estad
  doc.save(fileName);
 }
 
-function generatePdfForSingleRecuento(rec,items){
- if(!items.length){
+function generatePdfForSingleRecuento(rec,items,refRec=null,refItems=null){
+ const hasRef=!!(refRec && refItems);
+ const summaryItems=hasRef?mergeItemsWithReference(items,refItems):items;
+ if(!summaryItems.length){
   alert('Este recuento todavía no tiene cantidades registradas para generar PDF.');
   return;
  }
 
- const bodyRows=items.map(it=>[
+ const bodyRows=summaryItems.map(it=>hasRef?[
+  it.codigo,
+  it.descripcion,
+  it.categoria,
+  String(it.parciales.length),
+  formatQty(it.total),
+  formatQty(it.refTotal),
+  (it.diff>0?'+':'')+formatQty(it.diff)
+ ]:[
   it.codigo,
   it.descripcion,
   it.categoria,
@@ -4625,13 +4884,23 @@ function generatePdfForSingleRecuento(rec,items){
   .slice(0,50)||'Recuento';
 
  generateSignablePdfReport({
-  tituloRecuento:rec.nombre,
+  tituloRecuento:hasRef?`${rec.nombre} (Ref: ${refRec.nombre})`:rec.nombre,
   auditores:rec.responsable||'—',
   fechaCreacion:formatDate(rec.creado_en),
   estadoTexto:rec.estado.toUpperCase(),
-  headColumns:['Código','Descripción','Categoría','Parciales','Cantidad Total'],
+  headColumns:hasRef
+   ? ['Código','Descripción','Categoría','Parc.','Total','Ref.','Dif.']
+   : ['Código','Descripción','Categoría','Parciales','Cantidad Total'],
   bodyRows,
-  columnStyles:{
+  columnStyles:hasRef?{
+   0:{cellWidth:24,fontStyle:'bold'},
+   1:{cellWidth:'auto'},
+   2:{cellWidth:32},
+   3:{cellWidth:12,halign:'center'},
+   4:{cellWidth:18,halign:'right',fontStyle:'bold'},
+   5:{cellWidth:18,halign:'right'},
+   6:{cellWidth:18,halign:'right',fontStyle:'bold'}
+  }:{
    0:{cellWidth:28,fontStyle:'bold'},
    1:{cellWidth:'auto'},
    2:{cellWidth:38},
@@ -4648,8 +4917,21 @@ async function exportRecuentoById(rec,format){
    ? buildRecuentoConsolidatedItems(workRecuentoArticulos,workParciales,workPrealtas)
    : (await fetchFullRecuentoDetails(rec.id)).items;
 
-  if(format==='excel')generateExcelForSingleRecuento(rec,items);
-  else generatePdfForSingleRecuento(rec,items);
+  let refRec=null, refItems=null;
+  const refId=getRecuentoRefId(rec.id);
+  if(refId && refId!==rec.id){
+   refRec=recuentos.find(r=>r.id===refId)||null;
+   if(refRec){
+    if(activeRecuento && activeRecuento.id===rec.id && workRefRecuento && workRefRecuento.id===refId){
+     refItems=workRefItems;
+    }else{
+     refItems=(await fetchFullRecuentoDetails(refId)).items;
+    }
+   }
+  }
+
+  if(format==='excel')generateExcelForSingleRecuento(rec,items,refRec,refItems);
+  else generatePdfForSingleRecuento(rec,items,refRec,refItems);
  }catch(e){
   alert('No se pudo generar el reporte: '+(e.message||e));
  }
@@ -5202,6 +5484,7 @@ function handleRecArtSearch(){
       <div style="font-size:12px;color:var(--muted)">${esc(a.categoria||'Sin categoría')}</div>
      </div>
      <div style="text-align:right;white-space:nowrap">
+      ${workRefRecuento?`<span class="refPillMini" title="Cantidad en ${esc(workRefRecuento.nombre)}">Ref: ${formatQty(getRefQtyForArticle(a.codigo,a.descripcion))}</span>`:''}
       ${subParciales.length
        ? `<span class="pill">✓ Contado: ${formatQty(total)} (${subParciales.length})</span>`
        : `<span class="pill na">Sin cargar</span>`}
@@ -5351,6 +5634,21 @@ function renderSelectedRecItem(){
  $('selArtCat').textContent=itemCat;
 
  $('selArtTotal').textContent=formatQty(total);
+ const refInfoEl=$('selArtRefInfo');
+ if(refInfoEl){
+  if(workRefRecuento){
+   const refCode=selectedRecItem.kind==='catalogo'?selectedRecItem.article.codigo:(selectedRecItem.prealta.articulo_codigo||'');
+   const refQty=getRefQtyForArticle(refCode,itemDesc);
+   const diff=Math.round((total-refQty)*1000)/1000;
+   const diffCls=diff>0?'diffPos':(diff<0?'diffNeg':'');
+   const diffTxt=(diff>0?'+':'')+formatQty(diff);
+   refInfoEl.innerHTML=`Ref: <b>${formatQty(refQty)}</b> · Dif: <span class="${diffCls}">${diffTxt}</span>`;
+   refInfoEl.hidden=false;
+  }else{
+   refInfoEl.hidden=true;
+   refInfoEl.innerHTML='';
+  }
+ }
  $('selParcialesCount').textContent=`${list.length} parcial(es) registrados`;
  $('selParcialesEmpty').hidden=list.length!==0;
 
@@ -6415,7 +6713,16 @@ function renderWorkSummary(){
     <td><strong>${esc(x.descripcion)}</strong>${origSub}</td>
     <td>${esc(x.categoria)}</td>
     <td>${x.parciales.length}</td>
-    <td class="num">${formatQty(x.total)}</td>
+    <td class="num">
+     ${formatQty(x.total)}
+     ${workRefRecuento?(()=>{
+      const rq=getRefQtyForArticle(x.codigo,x.descripcion);
+      const df=Math.round((x.total-rq)*1000)/1000;
+      const dCls=df>0?'diffPos':(df<0?'diffNeg':'');
+      const dTxt=(df>0?'+':'')+formatQty(df);
+      return `<div class="refInlineBadge">Ref: ${formatQty(rq)} (<span class="${dCls}">${dTxt}</span>)</div>`;
+     })():''}
+    </td>
     <td><button class="secondary sm">Ver parciales</button></td>
    </tr>
   `;
@@ -7809,6 +8116,13 @@ $('recArtSearch').addEventListener('input',()=>{
 });
 $('workSummarySort').addEventListener('change',renderWorkSummary);
 $('workSummarySearch').addEventListener('input',renderWorkSummary);
+$('workRefSelect').addEventListener('change',async()=>{
+ if(!activeRecuento)return;
+ setRecuentoRefId(activeRecuento.id,$('workRefSelect').value||'');
+ await loadWorkReferenceData();
+ renderWorkSummary();
+ if(selectedRecItem)renderSelectedRecItem();
+});
 $('clearRecArtSearch').addEventListener('click',()=>{
  $('recArtSearch').value='';
  handleRecArtSearch();
