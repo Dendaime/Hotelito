@@ -19,7 +19,7 @@
 :root{--bg:#f4f7f8;--panel:#ffffff;--panel2:#edf3f4;--line:#dce5e8;--text:#26363d;--muted:#687b83;--accent:#258b8d;--accent2:#39845d;--warn:#a66a10;--danger:#bd4b45;--white:#fff}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
-header{padding:24px clamp(18px,4vw,56px) 20px;border-bottom:1px solid var(--line);background:linear-gradient(120deg,#ffffff,#f0f7f7)}
+header{position:sticky;top:0;z-index:45;padding:8px clamp(14px,3vw,36px);border-bottom:1px solid var(--line);background:linear-gradient(120deg,#ffffff,#f0f7f7);box-shadow:0 2px 10px #1622270f}
 .top{max-width:1400px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:14px}
 .brandIdentity{display:flex;flex-direction:column;align-items:flex-start}
@@ -38,7 +38,7 @@ main{max-width:1400px;margin:28px auto;padding:0 clamp(16px,4vw,56px)}
 .notice.warn{border-color:#efd6a7;background:#fff8eb;color:#855407}
 .notice.info{border-color:#c6d7f5;background:#f0f5ff;color:#24488a}
 #pendingRecoveryBanner:not([hidden]){display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-.navTabs{display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--line);padding-bottom:12px;flex-wrap:wrap}
+.navTabs{display:none!important}
 .navTab{background:var(--panel);color:var(--muted);border:1px solid var(--line);border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:7px}
 .navTab.active{background:var(--accent);color:#06201f;border-color:var(--accent)}
 .badgeCount{background:#fff3dc;color:#94600b;padding:2px 7px;border-radius:99px;font-size:11px;font-weight:800}
