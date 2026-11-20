@@ -365,7 +365,14 @@ input::placeholder{color:#9aa8ad}
 .acgmDetails[open] summary{border-bottom:1px solid var(--line)}
 .acgmDetailsBody{padding:12px 14px}
 .acgmCatFilterWrap{position:relative;display:inline-flex;align-items:center;gap:6px}
-.acgmCatPopover{position:absolute;top:calc(100% + 6px);left:0;z-index:80;min-width:230px;max-width:300px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px #10202626;padding:10px}
+.acgmCatPopover{position:absolute;top:calc(100% + 6px);right:0;left:auto;z-index:80;min-width:230px;max-width:300px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px #10202626;padding:10px}
+.drawerConnWrap{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);display:grid;gap:8px;overflow-y:auto}
+.drawerConnBox{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.drawerConnBox summary{list-style:none;cursor:pointer;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:6px}
+.drawerConnBox summary::-webkit-details-marker{display:none}
+.drawerConnBody{margin-top:8px;display:grid;gap:6px}
+.drawerConnBody input{width:100%;padding:7px 9px;font-size:12px}
+.drawerConnBody button{width:100%;justify-content:center}
 .acgmCatCheck{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12.5px}
 .acgmCatCheck:hover{background:var(--panel2)}
 .acgmCatDot{width:11px;height:11px;border-radius:50%;flex:0 0 11px;display:inline-block}
@@ -653,7 +660,45 @@ input::placeholder{color:#9aa8ad}
   <button type="button" class="sideDrawerItem" id="drawerTabMovimientos" data-drawer-view="movimientos" hidden>
    <span class="sideDrawerItemLeft"><span>📥</span><span>Control de movimientos</span></span>
   </button>
+  <button type="button" class="sideDrawerItem" id="drawerTabCompras" data-drawer-view="compras" hidden>
+   <span class="sideDrawerItemLeft"><span>🧾</span><span>Compras y gastos Adm.</span></span>
+  </button>
  </nav>
+
+ <div class="drawerConnWrap" id="drawerExternalConns" hidden>
+  <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);padding:0 4px">Conexiones externas</div>
+  <details class="drawerConnBox" id="drawerVestaConnBox">
+   <summary><span>🔌 Vesta</span><span id="vestaConnBadge" style="font-size:10.5px;color:var(--muted)">Desconectado</span></summary>
+   <div class="drawerConnBody">
+    <div id="vestaConnStatus" style="font-size:11.5px;color:var(--muted)">Desconectado. Iniciá sesión con tu usuario de Vesta.</div>
+    <div id="vestaLoginForm" style="display:grid;gap:6px">
+     <input id="vestaLoginUser" placeholder="Usuario Vesta" autocomplete="off">
+     <input id="vestaLoginPass" type="password" placeholder="Contraseña" autocomplete="off">
+     <button type="button" class="sm" id="vestaLoginBtn">Conectar Vesta</button>
+    </div>
+    <div id="vestaConnectedActions" style="display:none;gap:6px;flex-direction:column">
+     <button type="button" class="secondary sm" id="vestaRefreshBtn">↻ Actualizar Vesta</button>
+     <button type="button" class="secondary sm" id="vestaExportExcelBtn">↓ Exportar Excel oficial</button>
+     <button type="button" class="secondary sm" id="vestaLogoutBtn">Desconectar Vesta</button>
+    </div>
+   </div>
+  </details>
+  <details class="drawerConnBox" id="drawerAcgmConnBox">
+   <summary><span>🔌 Pago a proveedores</span><span id="acgmConnBadge" style="font-size:10.5px;color:var(--muted)">Desconectado</span></summary>
+   <div class="drawerConnBody">
+    <div id="acgmConnStatus" style="font-size:11.5px;color:var(--muted)">Desconectado. Iniciá sesión con tu usuario de Pago a proveedores.</div>
+    <div id="acgmLoginForm" style="display:grid;gap:6px">
+     <input id="acgmLoginUser" placeholder="Usuario o Email ACGM" autocomplete="off">
+     <input id="acgmLoginPass" type="password" placeholder="Contraseña" autocomplete="off">
+     <button type="button" class="sm" id="acgmLoginBtn">Conectar ACGM</button>
+    </div>
+    <div id="acgmConnectedActions" style="display:none;gap:6px;flex-direction:column">
+     <button type="button" class="secondary sm" id="acgmRefreshBtn">↻ Actualizar ACGM</button>
+     <button type="button" class="secondary sm" id="acgmLogoutBtn">Desconectar ACGM</button>
+    </div>
+   </div>
+  </details>
+ </div>
 
  <div class="sideDrawerFoot">
   <div id="drawerModeLabel">Modo consulta pública</div>
@@ -694,6 +739,7 @@ input::placeholder{color:#9aa8ad}
     Pre-altas pendientes <span class="badgeCount" id="prealtasBadge" hidden>0</span>
    </button>
    <button class="navTab" id="tabMovimientos" data-view="movimientos">Control de movimientos</button>
+   <button class="navTab" id="tabCompras" data-view="compras">Compras y gastos Adm.</button>
   </nav>
 
   <!-- VISTA 1: CATÁLOGO -->
@@ -1144,30 +1190,17 @@ input::placeholder{color:#9aa8ad}
    </div>
   </div>
 
-  <!-- VISTA 5: CONTROL DE MOVIMIENTOS (VESTA + ACGM) -->
+  <!-- VISTA 5: CONTROL DE MOVIMIENTOS (VESTA) -->
   <div id="viewMovimientos" hidden>
    <div class="subNavTabs">
     <button type="button" class="subNavTab active" data-mov-sub="recepciones">📥 Planillas de recepción</button>
-    <button type="button" class="subNavTab" data-mov-sub="compras">🧾 Compras administración</button>
    </div>
 
    <!-- SUB-VISTA A: PLANILLAS DE RECEPCIÓN (VESTA) -->
    <div id="movSubRecepciones">
-   <div class="vestaAuthBar">
-    <div>
-     <strong style="font-size:14px">Conexión con Vesta</strong>
-     <div id="vestaConnStatus" style="font-size:12px;color:var(--muted);margin-top:2px">Desconectado. Iniciá sesión con tu usuario Auditor de Vesta.</div>
-    </div>
-    <div id="vestaLoginForm" class="vestaLoginInline">
-     <input id="vestaLoginUser" placeholder="Usuario Vesta" autocomplete="off">
-     <input id="vestaLoginPass" type="password" placeholder="Contraseña" autocomplete="off">
-     <button type="button" id="vestaLoginBtn">Conectar Vesta</button>
-    </div>
-    <div id="vestaConnectedActions" style="display:none;gap:8px;align-items:center;flex-wrap:wrap">
-     <button type="button" class="secondary sm" id="vestaRefreshBtn">↻ Actualizar</button>
-     <button type="button" class="secondary sm" id="vestaExportExcelBtn">↓ Excel Vesta</button>
-     <button type="button" class="secondary sm" id="vestaLogoutBtn">Desconectar</button>
-    </div>
+   <div id="vestaDisconnectedNotice" class="notice info" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <span>Desconectado de <strong>Vesta</strong>. Conectá tu cuenta desde el menú lateral izquierdo.</span>
+    <button type="button" class="sm" id="openVestaDrawerBtn">🔌 Conectar Vesta</button>
    </div>
 
    <div id="vestaErrorBox" class="notice warn" hidden></div>
@@ -1238,52 +1271,25 @@ input::placeholder{color:#9aa8ad}
     </div>
    </div>
    </div><!-- /movSubRecepciones -->
+  </div><!-- /viewMovimientos -->
 
-   <!-- SUB-VISTA B: COMPRAS ADMINISTRACIÓN (PAGO A PROVEEDORES / ACGM) -->
-   <div id="movSubCompras" hidden>
-    <div class="vestaAuthBar">
-     <div>
-      <strong style="font-size:14px">Conexión con Pago a proveedores (ACGM)</strong>
-      <div id="acgmConnStatus" style="font-size:12px;color:var(--muted);margin-top:2px">Desconectado. Iniciá sesión con tu usuario de Pago a proveedores.</div>
-     </div>
-     <div id="acgmLoginForm" class="vestaLoginInline">
-      <input id="acgmLoginUser" placeholder="Usuario o Email ACGM" autocomplete="off">
-      <input id="acgmLoginPass" type="password" placeholder="Contraseña" autocomplete="off">
-      <button type="button" id="acgmLoginBtn">Conectar ACGM</button>
-     </div>
-     <div id="acgmConnectedActions" style="display:none;gap:8px;align-items:center;flex-wrap:wrap">
-      <button type="button" class="secondary sm" id="acgmRefreshBtn">↻ Actualizar</button>
-      <button type="button" class="secondary sm" id="acgmLogoutBtn">Desconectar</button>
-     </div>
-    </div>
+  <!-- VISTA 6: COMPRAS Y GASTOS ADM. (PAGO A PROVEEDORES / ACGM) -->
+  <div id="viewCompras" hidden>
+   <div id="acgmDisconnectedNotice" class="notice info" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <span>Desconectado de <strong>Pago a proveedores (ACGM)</strong>. Conectá tu cuenta desde el menú lateral izquierdo.</span>
+    <button type="button" class="sm" id="openAcgmDrawerBtn">🔌 Conectar ACGM</button>
+   </div>
 
-    <div id="acgmErrorBox" class="notice warn" hidden></div>
+   <div id="acgmErrorBox" class="notice warn" hidden></div>
 
-    <div id="acgmComprasArea" hidden>
-     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:4px">
-      <div class="acgmTipoSwitch" id="acgmTipoSwitch">
-       <button type="button" class="acgmTipoBtn active" data-acgm-tipo="ambas">Ambas</button>
-       <button type="button" class="acgmTipoBtn" data-acgm-tipo="acgm">ACGM</button>
-       <button type="button" class="acgmTipoBtn" data-acgm-tipo="solicitud">Solicitudes</button>
-      </div>
+   <div id="acgmComprasArea" hidden>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+     <div class="acgmTipoSwitch" id="acgmTipoSwitch" style="margin-bottom:0">
+      <button type="button" class="acgmTipoBtn active" data-acgm-tipo="ambas">Ambas</button>
+      <button type="button" class="acgmTipoBtn" data-acgm-tipo="acgm">ACGM</button>
+      <button type="button" class="acgmTipoBtn" data-acgm-tipo="solicitud">Solicitudes</button>
      </div>
-     <section class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
-      <div class="metric"><div class="k">Facturas en vista</div><div class="v" id="aMetTotal">0</div></div>
-      <div class="metric"><div class="k">Total facturado</div><div class="v teal" id="aMetMonto" style="font-size:20px">$ 0</div></div>
-      <div class="metric"><div class="k">Urgentes</div><div class="v" id="aMetUrgentes" style="color:var(--warn)">0</div></div>
-      <div class="metric"><div class="k">Alertas (sin PDF / dif.)</div><div class="v" id="aMetAlertas" style="color:var(--danger)">0</div></div>
-     </section>
-
-     <div class="toolbar">
-      <input id="aDesde" type="date" title="Fecha desde">
-      <input id="aHasta" type="date" title="Fecha hasta">
-      <input id="aSearch" placeholder="Buscar proveedor, CUIT, N° factura, ACGM o rubro…" style="flex:1;min-width:210px">
-      <select id="aEmpresa"><option value="">Todas las empresas</option></select>
-      <button type="button" id="aBuscarBtn">Consultar</button>
-      <button type="button" class="secondary" id="acgmExportExcelBtn">↓ Exportar Excel</button>
-     </div>
-
-     <div class="auditFilterBar" id="aAuditChips">
+     <div class="auditFilterBar" id="aAuditChips" style="margin:0">
       <button type="button" class="auditChipBtn active" id="aCatAllBtn">Todas</button>
       <div class="acgmCatFilterWrap">
        <button type="button" class="auditChipBtn" id="aCatFilterBtn">🏷️ Categorías ▾</button>
@@ -1291,11 +1297,27 @@ input::placeholder{color:#9aa8ad}
       </div>
       <button type="button" class="auditChipBtn" id="aAddCatBtn" title="Crear o administrar categorías de auditoría" style="font-weight:900;padding:6px 12px">+</button>
      </div>
+    </div>
+    <section class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+     <div class="metric"><div class="k">Facturas en vista</div><div class="v" id="aMetTotal">0</div></div>
+     <div class="metric"><div class="k">Total facturado</div><div class="v teal" id="aMetMonto" style="font-size:20px">$ 0</div></div>
+     <div class="metric"><div class="k">Urgentes</div><div class="v" id="aMetUrgentes" style="color:var(--warn)">0</div></div>
+     <div class="metric"><div class="k">Alertas (sin PDF / dif.)</div><div class="v" id="aMetAlertas" style="color:var(--danger)">0</div></div>
+    </section>
 
-     <div class="meta">
-      <span id="aCountLabel">Listo para consultar</span>
-      <span>Clic simple: detalle y archivos · Clic sostenido (o derecho): categorizar</span>
-     </div>
+    <div class="toolbar">
+     <input id="aDesde" type="date" title="Fecha desde">
+     <input id="aHasta" type="date" title="Fecha hasta">
+     <input id="aSearch" placeholder="Buscar proveedor, CUIT, N° factura, ACGM o rubro…" style="flex:1;min-width:210px">
+     <select id="aEmpresa"><option value="">Todas las empresas</option></select>
+     <button type="button" id="aBuscarBtn">Consultar</button>
+     <button type="button" class="secondary" id="acgmExportExcelBtn">↓ Exportar Excel</button>
+    </div>
+
+    <div class="meta">
+     <span id="aCountLabel">Listo para consultar</span>
+     <span>Clic simple: detalle y archivos · Clic sostenido (o derecho): categorizar</span>
+    </div>
 
      <div class="tablewrap">
       <table>
@@ -1312,12 +1334,10 @@ input::placeholder{color:#9aa8ad}
        <tbody id="aComprasRows"></tbody>
       </table>
       <div class="empty" id="aComprasEmpty" hidden>No se encontraron facturas con los filtros actuales.</div>
-     </div>
     </div>
-   </div><!-- /movSubCompras -->
+   </div><!-- /viewCompras -->
   </div>
- </div>
-</main>
+ </main>
 
 <footer>Hotelito · Gestión de auditorías operativas</footer>
 
@@ -2895,21 +2915,25 @@ function switchView(view){
  $('tabPrealtas').classList.toggle('active',view==='prealtas');
  $('tabPlanificacion').classList.toggle('active',view==='planificacion');
  $('tabMovimientos').classList.toggle('active',view==='movimientos');
+ $('tabCompras').classList.toggle('active',view==='compras');
  $('drawerTabCatalogo').classList.toggle('active',view==='catalogo');
  $('drawerTabRecuentos').classList.toggle('active',view==='recuentos');
  $('drawerTabPrealtas').classList.toggle('active',view==='prealtas');
  $('drawerTabPlanificacion').classList.toggle('active',view==='planificacion');
  $('drawerTabMovimientos').classList.toggle('active',view==='movimientos');
+ $('drawerTabCompras').classList.toggle('active',view==='compras');
  $('viewCatalogo').hidden=view!=='catalogo';
  $('viewRecuentos').hidden=view!=='recuentos';
  $('viewPrealtas').hidden=view!=='prealtas';
  $('viewPlanificacion').hidden=view!=='planificacion';
  $('viewMovimientos').hidden=view!=='movimientos';
+ $('viewCompras').hidden=view!=='compras';
  closeSideDrawer();
  if(view==='recuentos')loadRecuentos();
  if(view==='prealtas')loadPrealtasInbox();
  if(view==='planificacion')loadPlannerModule();
  if(view==='movimientos')initMovimientosView();
+ if(view==='compras')initAcgmComprasView();
 }
 
 async function connect(){
@@ -3023,6 +3047,9 @@ async function loadData(){
   $('drawerTabPrealtas').hidden=!isEditor;
   $('drawerTabPlanificacion').hidden=!isEditor;
   $('drawerTabMovimientos').hidden=!isEditor;
+ $('drawerTabCompras').hidden=!isEditor;
+ $('drawerExternalConns').hidden=!isEditor;
+ if(isEditor){loadVestaSession();updateVestaAuthUI();loadAcgmSession();updateAcgmAuthUI();}
   $('drawerModeLabel').textContent=isEditor?'Modo editor habilitado':'Modo consulta pública';
   $('newArticle').hidden=!isEditor;
   $('loadPhotosWrap').hidden=!isEditor;
@@ -8990,14 +9017,21 @@ function saveVestaSession(sess){
 
 function updateVestaAuthUI(){
  const connected=!!vestaSession?.accessToken;
- $('vestaLoginForm').style.display=connected?'none':'flex';
+ $('vestaLoginForm').style.display=connected?'none':'grid';
  $('vestaConnectedActions').style.display=connected?'flex':'none';
  $('vestaRecepcionesArea').hidden=!connected;
+ const notice=$('vestaDisconnectedNotice');
+ if(notice)notice.style.display=connected?'none':'flex';
+ const badge=$('vestaConnBadge');
+ if(badge){
+  badge.textContent=connected?'● Conectado':'Desconectado';
+  badge.style.color=connected?'var(--accent2)':'var(--muted)';
+ }
  if(connected){
   const u=vestaSession.user||{};
   const nombre=u.nombre||u.login||u.usuario||'Auditor';
   const rol=u.rol||u.id_rol||'';
-  $('vestaConnStatus').innerHTML=`<span style="color:var(--accent2);font-weight:700">● Conectado a Vesta</span> como <strong>${esc(nombre)}</strong>${rol?` (${esc(rol)})`:''}`;
+  $('vestaConnStatus').innerHTML=`<span style="color:var(--accent2);font-weight:700">● Conectado</span> como <strong>${esc(nombre)}</strong>${rol?` (${esc(rol)})`:''}`;
  }else{
   $('vestaConnStatus').textContent='Desconectado. Iniciá sesión con tu usuario Auditor de Vesta.';
  }
@@ -9288,6 +9322,18 @@ function initMovimientosView(){
 
 $('tabMovimientos').addEventListener('click',()=>switchView('movimientos'));
 $('drawerTabMovimientos').addEventListener('click',()=>switchView('movimientos'));
+$('tabCompras').addEventListener('click',()=>switchView('compras'));
+$('drawerTabCompras').addEventListener('click',()=>switchView('compras'));
+$('openVestaDrawerBtn').addEventListener('click',()=>{
+ openSideDrawer();
+ const b=$('drawerVestaConnBox');
+ if(b){b.open=true;setTimeout(()=>$('vestaLoginUser')?.focus(),120);}
+});
+$('openAcgmDrawerBtn').addEventListener('click',()=>{
+ openSideDrawer();
+ const b=$('drawerAcgmConnBox');
+ if(b){b.open=true;setTimeout(()=>$('acgmLoginUser')?.focus(),120);}
+});
 $('vestaLoginBtn').addEventListener('click',vestaLogin);
 $('vestaLoginPass').addEventListener('keydown',e=>{if(e.key==='Enter')vestaLogin();});
 $('vestaLogoutBtn').addEventListener('click',vestaLogout);
@@ -9303,7 +9349,7 @@ document.querySelectorAll('#vAuditChips [data-vaudit]').forEach(btn=>{
 });
 
 /* =========================================================
-   MÓDULO CONTROL DE MOVIMIENTOS · SUB-PESTAÑAS + ACGM
+   MÓDULO COMPRAS Y GASTOS ADM. (ACGM / PAGO A PROVEEDORES)
    ========================================================= */
 const ACGM_PROXY_URL='https://dhcwsqgnbkcoxlrlatey.supabase.co/functions/v1/dynamic-api';
 const ACGM_STORAGE_KEY='hotelito_acgm_session';
@@ -9321,9 +9367,7 @@ function switchMovSubTab(sub){
  document.querySelectorAll('#viewMovimientos [data-mov-sub]').forEach(b=>{
   b.classList.toggle('active',b.dataset.movSub===sub);
  });
- $('movSubRecepciones').hidden=sub!=='recepciones';
- $('movSubCompras').hidden=sub!=='compras';
- if(sub==='compras')initAcgmComprasView();
+ if($('movSubRecepciones'))$('movSubRecepciones').hidden=sub!=='recepciones';
 }
 
 document.querySelectorAll('#viewMovimientos [data-mov-sub]').forEach(btn=>{
@@ -9360,14 +9404,21 @@ function showAcgmError(msg){
 
 function updateAcgmAuthUI(){
  const connected=!!(acgmSession?.cookie || acgmSession?.token);
- $('acgmLoginForm').style.display=connected?'none':'flex';
+ $('acgmLoginForm').style.display=connected?'none':'grid';
  $('acgmConnectedActions').style.display=connected?'flex':'none';
  $('acgmComprasArea').hidden=!connected;
+ const notice=$('acgmDisconnectedNotice');
+ if(notice)notice.style.display=connected?'none':'flex';
+ const badge=$('acgmConnBadge');
+ if(badge){
+  badge.textContent=connected?'● Conectado':'Desconectado';
+  badge.style.color=connected?'var(--accent2)':'var(--muted)';
+ }
  if(connected){
   const u=acgmSession.user||{};
   const nombre=u.usuario||u.email||u.nombre||'Usuario ACGM';
   const rol=u.rol_id?` (Rol ${u.rol_id})`:'';
-  $('acgmConnStatus').innerHTML=`<span style="color:var(--accent2);font-weight:700">● Conectado a ACGM</span> como <strong>${esc(nombre)}</strong>${esc(rol)}`;
+  $('acgmConnStatus').innerHTML=`<span style="color:var(--accent2);font-weight:700">● Conectado</span> como <strong>${esc(nombre)}</strong>${esc(rol)}`;
  }else{
   $('acgmConnStatus').textContent='Desconectado. Iniciá sesión con tu usuario de Pago a proveedores.';
  }
