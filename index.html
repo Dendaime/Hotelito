@@ -328,6 +328,35 @@ input::placeholder{color:#9aa8ad}
 .subNavTabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
 .subNavTab{background:var(--panel);color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:8px 14px;font-weight:700;font-size:12.5px;cursor:pointer}
 .subNavTab.active{background:#e6f2f1;color:var(--accent);border-color:var(--accent)}
+.acgmTipoSwitch{display:inline-flex;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px;margin-bottom:14px}
+.acgmTipoBtn{background:transparent;color:var(--muted);border:0;border-radius:8px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer}
+.acgmTipoBtn.active{background:#fff;color:var(--accent);box-shadow:0 1px 4px #26363d18}
+.acgmMiniSteps{display:inline-flex;align-items:center;gap:4px;margin-top:4px}
+.acgmMiniDot{width:8px;height:8px;border-radius:50%;background:var(--line);display:inline-block}
+.acgmMiniDot.done{background:var(--accent2)}
+.acgmMiniDot.curr{background:var(--accent);box-shadow:0 0 0 2px #0f766e33}
+.acgmMiniDot.err{background:var(--danger)}
+.acgmHistCard{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:12px}
+.acgmHistTitle{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:10px}
+.acgmStepper{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-bottom:12px;position:relative}
+.acgmStep{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 6px;text-align:center;position:relative}
+.acgmStep.done{border-color:#2e8b5766;background:#eef9f2}
+.acgmStep.curr{border-color:var(--accent);background:#e6f2f1;box-shadow:0 0 0 2px #0f766e22}
+.acgmStep.err{border-color:#c0392b66;background:#fdeeed}
+.acgmStepDot{width:22px;height:22px;border-radius:50%;margin:0 auto 4px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;background:var(--line);color:var(--muted)}
+.acgmStep.done .acgmStepDot{background:var(--accent2);color:#fff}
+.acgmStep.curr .acgmStepDot{background:var(--accent);color:#fff}
+.acgmStep.err .acgmStepDot{background:var(--danger);color:#fff}
+.acgmStepName{font-size:11.5px;font-weight:800;color:var(--text);line-height:1.2}
+.acgmStepUser{font-size:10.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acgmStepDate{font-size:10px;color:var(--muted);margin-top:1px}
+.acgmHistList{display:flex;flex-direction:column;gap:8px;border-left:2px solid var(--line);margin-left:8px;padding-left:12px}
+.acgmHistItem{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px 10px;position:relative}
+.acgmHistItem::before{content:"";position:absolute;left:-18px;top:12px;width:10px;height:10px;border-radius:50%;background:var(--accent2);border:2px solid var(--panel2)}
+.acgmHistItem.err::before{background:var(--danger)}
+.acgmHistHead{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px}
+.acgmHistObs{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35}
+@media (max-width:650px){.acgmStepper{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .vestaAuthBar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 16px;margin-bottom:16px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
 .vestaLoginInline{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .vestaLoginInline input{padding:9px 11px;font-size:13px;min-width:160px}
@@ -544,7 +573,7 @@ input::placeholder{color:#9aa8ad}
 
  .vestaLoginInline{width:100%}
  .vestaLoginInline input,.vestaLoginInline button{width:100%;min-width:0}
- #vestaRecepcionesArea .metrics{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #vestaRecepcionesArea .metrics,#acgmComprasArea .metrics{grid-template-columns:repeat(2,minmax(0,1fr))!important}
  .firmasGrid{grid-template-columns:1fr}
  .detail{padding:15px}
  .photo{max-height:240px}
@@ -1093,12 +1122,15 @@ input::placeholder{color:#9aa8ad}
    </div>
   </div>
 
-  <!-- VISTA 5: CONTROL DE MOVIMIENTOS (VESTA) -->
+  <!-- VISTA 5: CONTROL DE MOVIMIENTOS (VESTA + ACGM) -->
   <div id="viewMovimientos" hidden>
    <div class="subNavTabs">
     <button type="button" class="subNavTab active" data-mov-sub="recepciones">📥 Planillas de recepción</button>
+    <button type="button" class="subNavTab" data-mov-sub="compras">🧾 Compras administración</button>
    </div>
 
+   <!-- SUB-VISTA A: PLANILLAS DE RECEPCIÓN (VESTA) -->
+   <div id="movSubRecepciones">
    <div class="vestaAuthBar">
     <div>
      <strong style="font-size:14px">Conexión con Vesta</strong>
@@ -1183,6 +1215,84 @@ input::placeholder{color:#9aa8ad}
      <div class="empty" id="vRecepcionesEmpty" hidden>No se encontraron planillas con los filtros actuales.</div>
     </div>
    </div>
+   </div><!-- /movSubRecepciones -->
+
+   <!-- SUB-VISTA B: COMPRAS ADMINISTRACIÓN (PAGO A PROVEEDORES / ACGM) -->
+   <div id="movSubCompras" hidden>
+    <div class="vestaAuthBar">
+     <div>
+      <strong style="font-size:14px">Conexión con Pago a proveedores (ACGM)</strong>
+      <div id="acgmConnStatus" style="font-size:12px;color:var(--muted);margin-top:2px">Desconectado. Iniciá sesión con tu usuario de Pago a proveedores.</div>
+     </div>
+     <div id="acgmLoginForm" class="vestaLoginInline">
+      <input id="acgmLoginUser" placeholder="Usuario o Email ACGM" autocomplete="off">
+      <input id="acgmLoginPass" type="password" placeholder="Contraseña" autocomplete="off">
+      <button type="button" id="acgmLoginBtn">Conectar ACGM</button>
+     </div>
+     <div id="acgmConnectedActions" style="display:none;gap:8px;align-items:center;flex-wrap:wrap">
+      <button type="button" class="secondary sm" id="acgmRefreshBtn">↻ Actualizar</button>
+      <button type="button" class="secondary sm" id="acgmExportExcelBtn">↓ Exportar Excel</button>
+      <button type="button" class="secondary sm" id="acgmLogoutBtn">Desconectar</button>
+     </div>
+    </div>
+
+    <div id="acgmErrorBox" class="notice warn" hidden></div>
+
+    <div id="acgmComprasArea" hidden>
+     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+      <div class="acgmTipoSwitch" id="acgmTipoSwitch">
+       <button type="button" class="acgmTipoBtn active" data-acgm-tipo="acgm">ACGM</button>
+       <button type="button" class="acgmTipoBtn" data-acgm-tipo="solicitud">Solicitudes</button>
+       <button type="button" class="acgmTipoBtn" data-acgm-tipo="ambas">Ambas</button>
+      </div>
+     </div>
+     <section class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+      <div class="metric"><div class="k">Facturas en vista</div><div class="v" id="aMetTotal">0</div></div>
+      <div class="metric"><div class="k">Total facturado</div><div class="v teal" id="aMetMonto" style="font-size:20px">$ 0</div></div>
+      <div class="metric"><div class="k">Urgentes</div><div class="v" id="aMetUrgentes" style="color:var(--warn)">0</div></div>
+      <div class="metric"><div class="k">Alertas (sin PDF / dif.)</div><div class="v" id="aMetAlertas" style="color:var(--danger)">0</div></div>
+     </section>
+
+     <div class="toolbar">
+      <input id="aDesde" type="date" title="Fecha desde">
+      <input id="aHasta" type="date" title="Fecha hasta">
+      <input id="aSearch" placeholder="Buscar proveedor, CUIT, N° factura, ACGM o rubro…" style="flex:1;min-width:210px">
+      <select id="aEmpresa"><option value="">Todas las empresas</option></select>
+      <select id="aEstado"><option value="">Todos los estados</option></select>
+      <button type="button" id="aBuscarBtn">Consultar</button>
+     </div>
+
+     <div class="auditFilterBar" id="aAuditChips">
+      <button type="button" class="auditChipBtn active" data-aaudit="all">Todas</button>
+      <button type="button" class="auditChipBtn" data-aaudit="urgente">⚡ Urgentes</button>
+      <button type="button" class="auditChipBtn" data-aaudit="dif_monto">⚠ Dif. facturado vs. a pagar</button>
+      <button type="button" class="auditChipBtn" data-aaudit="sin_pdf">🚨 Sin PDF factura</button>
+      <button type="button" class="auditChipBtn" data-aaudit="con_obs">💬 Con observación</button>
+     </div>
+
+     <div class="meta">
+      <span id="aCountLabel">Listo para consultar</span>
+      <span>Tocá una fila para ver detalle completo, CBU, retenciones y descargar PDF</span>
+     </div>
+
+     <div class="tablewrap">
+      <table>
+       <thead>
+        <tr>
+         <th>Fecha / ACGM</th>
+         <th>Factura / Empresa</th>
+         <th>Proveedor</th>
+         <th>Monto fact. / A pagar</th>
+         <th>Estado / Pago</th>
+         <th>PDF</th>
+        </tr>
+       </thead>
+       <tbody id="aComprasRows"></tbody>
+      </table>
+      <div class="empty" id="aComprasEmpty" hidden>No se encontraron facturas con los filtros actuales.</div>
+     </div>
+    </div>
+   </div><!-- /movSubCompras -->
   </div>
  </div>
 </main>
@@ -1592,6 +1702,19 @@ input::placeholder{color:#9aa8ad}
 </div>
 
 
+
+<div id="acgmFacturaModal" class="overlay">
+ <div class="dialog" style="max-width:820px">
+  <button class="secondary closeDialog" data-close="acgmFacturaModal">Cerrar</button>
+  <h2 id="aDetTitle" style="margin:0 0 4px;padding-right:70px">Detalle de factura</h2>
+  <p id="aDetMeta" style="margin:0 0 12px;font-size:12px;color:var(--muted)"></p>
+  <div id="aDetLoading" class="notice info" style="margin:0 0 10px" hidden>Cargando documentos relacionados e historial de estados desde ACGM…</div>
+  <div id="aDetLinks" class="evidLinksRow"></div>
+  <div id="aDetHistorialBox" class="acgmHistCard" hidden></div>
+  <div id="aDetGrid" class="fields" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:12px"></div>
+  <div id="aDetObsBox" class="notice info" style="margin-top:12px" hidden></div>
+ </div>
+</div>
 
 <div id="zipModal" class="overlay">
  <div class="dialog">
@@ -9077,6 +9200,7 @@ function initMovimientosView(){
  if(vestaSession?.accessToken && !vestaRecepcionesRaw.length){
   loadVestaRecepciones();
  }
+ if(activeMovSub==='compras')initAcgmComprasView();
 }
 
 $('tabMovimientos').addEventListener('click',()=>switchView('movimientos'));
@@ -9095,6 +9219,623 @@ document.querySelectorAll('#vAuditChips [data-vaudit]').forEach(btn=>{
  });
 });
 
+/* =========================================================
+   MÓDULO CONTROL DE MOVIMIENTOS · SUB-PESTAÑAS + ACGM
+   ========================================================= */
+const ACGM_PROXY_URL='https://dhcwsqgnbkcoxlrlatey.supabase.co/functions/v1/dynamic-api';
+const ACGM_STORAGE_KEY='hotelito_acgm_session';
+
+let activeMovSub='recepciones';
+let acgmSession=null;
+let acgmTipo='acgm';
+let acgmFacturasRaw=[];
+let acgmDetailCache={};
+let acgmTotalServer=0;
+let acgmAuditFilter='all';
+
+function switchMovSubTab(sub){
+ activeMovSub=sub;
+ document.querySelectorAll('#viewMovimientos [data-mov-sub]').forEach(b=>{
+  b.classList.toggle('active',b.dataset.movSub===sub);
+ });
+ $('movSubRecepciones').hidden=sub!=='recepciones';
+ $('movSubCompras').hidden=sub!=='compras';
+ if(sub==='compras')initAcgmComprasView();
+}
+
+document.querySelectorAll('#viewMovimientos [data-mov-sub]').forEach(btn=>{
+ btn.addEventListener('click',()=>switchMovSubTab(btn.dataset.movSub));
+});
+
+function formatMoneyAR(n){
+ const num=Number(n);
+ if(!Number.isFinite(num))return '—';
+ return '$ '+num.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+function loadAcgmSession(){
+ try{
+  const raw=localStorage.getItem(ACGM_STORAGE_KEY);
+  acgmSession=raw?JSON.parse(raw):null;
+ }catch{acgmSession=null;}
+}
+
+function saveAcgmSession(sess){
+ acgmSession=sess;
+ try{
+  if(sess)localStorage.setItem(ACGM_STORAGE_KEY,JSON.stringify(sess));
+  else localStorage.removeItem(ACGM_STORAGE_KEY);
+ }catch{}
+}
+
+function showAcgmError(msg){
+ const box=$('acgmErrorBox');
+ if(!msg){box.hidden=true;box.textContent='';return;}
+ box.hidden=false;
+ box.textContent=msg;
+}
+
+function updateAcgmAuthUI(){
+ const connected=!!(acgmSession?.cookie || acgmSession?.token);
+ $('acgmLoginForm').style.display=connected?'none':'flex';
+ $('acgmConnectedActions').style.display=connected?'flex':'none';
+ $('acgmComprasArea').hidden=!connected;
+ if(connected){
+  const u=acgmSession.user||{};
+  const nombre=u.usuario||u.email||u.nombre||'Usuario ACGM';
+  const rol=u.rol_id?` (Rol ${u.rol_id})`:'';
+  $('acgmConnStatus').innerHTML=`<span style="color:var(--accent2);font-weight:700">● Conectado a ACGM</span> como <strong>${esc(nombre)}</strong>${esc(rol)}`;
+ }else{
+  $('acgmConnStatus').textContent='Desconectado. Iniciá sesión con tu usuario de Pago a proveedores.';
+ }
+}
+
+async function acgmLogin(){
+ const usuarioOrEmail=$('acgmLoginUser').value.trim();
+ const password=$('acgmLoginPass').value;
+ showAcgmError('');
+ if(!usuarioOrEmail||!password){
+  showAcgmError('Ingresá tu usuario/email y contraseña de Pago a proveedores.');
+  return;
+ }
+ const btn=$('acgmLoginBtn');
+ btn.disabled=true;
+ try{
+  const res=await fetch(ACGM_PROXY_URL,{
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({action:'login',payload:{usuarioOrEmail,password}})
+  });
+  const json=await res.json().catch(()=>({}));
+  if(!res.ok || !json.ok){
+   const msg=json?.error?.message||json?.error||`Error HTTP ${res.status}`;
+   throw new Error(typeof msg==='string'?msg:JSON.stringify(msg));
+  }
+  if(!json.cookie && !json.token){
+   throw new Error('ACGM inició sesión pero no devolvió cookie ni token de sesión.');
+  }
+  saveAcgmSession({cookie:json.cookie||'',token:json.token||'',user:json.user||{usuario:usuarioOrEmail}});
+  $('acgmLoginPass').value='';
+  updateAcgmAuthUI();
+  await loadAcgmFacturas();
+ }catch(e){
+  showAcgmError('No se pudo conectar a ACGM: '+(e.message||e));
+ }finally{
+  btn.disabled=false;
+ }
+}
+
+function acgmLogout(){
+ saveAcgmSession(null);
+ acgmFacturasRaw=[];
+ acgmDetailCache={};
+ acgmTotalServer=0;
+ updateAcgmAuthUI();
+ showAcgmError('');
+}
+
+async function fetchAcgmFacturasByTipo(tipo){
+ const query={page:'1',limit:'200',tipo};
+ if($('aDesde').value)query.desde=$('aDesde').value;
+ if($('aHasta').value)query.hasta=$('aHasta').value;
+
+ const res=await fetch(ACGM_PROXY_URL,{
+  method:'POST',
+  headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({
+   action:'get',
+   path:'/facturas/',
+   query,
+   cookie:acgmSession.cookie||undefined,
+   token:acgmSession.token||undefined
+  })
+ });
+ const json=await res.json().catch(()=>({}));
+ if(res.status===401 || json.status===401){
+  acgmLogout();
+  throw new Error('Tu sesión en ACGM expiró. Volvé a iniciar sesión.');
+ }
+ if(!res.ok || !json.ok){
+  const msg=json?.data?.message||json?.error||`Error HTTP ${json.status||res.status}`;
+  throw new Error(msg);
+ }
+ const d=json.data||{};
+ const rows=(Array.isArray(d.facturas)?d.facturas:(Array.isArray(d)?d:[])).map(f=>({
+  ...f,
+  _tipoOrigen:tipo==='solicitud'?'solicitud':'acgm'
+ }));
+ return {rows,total:Number(d.total ?? rows.length)};
+}
+
+async function loadAcgmFacturas(){
+ if(!acgmSession?.cookie && !acgmSession?.token)return;
+ showAcgmError('');
+ const tipoLabel=acgmTipo==='ambas'?'ACGM + Solicitudes':(acgmTipo==='solicitud'?'Solicitudes':'ACGM');
+ $('aCountLabel').textContent=`Consultando ${tipoLabel} en Pago a proveedores…`;
+ $('aBuscarBtn').disabled=true;
+ try{
+  if(acgmTipo==='ambas'){
+   const [resAcgm,resSol]=await Promise.all([
+    fetchAcgmFacturasByTipo('acgm'),
+    fetchAcgmFacturasByTipo('solicitud')
+   ]);
+   acgmFacturasRaw=[...resAcgm.rows,...resSol.rows].sort((a,b)=>
+    String(b.fecha_creacion||'').localeCompare(String(a.fecha_creacion||''))
+   );
+   acgmTotalServer=resAcgm.total+resSol.total;
+  }else{
+   const resOne=await fetchAcgmFacturasByTipo(acgmTipo);
+   acgmFacturasRaw=resOne.rows;
+   acgmTotalServer=resOne.total;
+  }
+  populateAcgmFilters();
+  renderAcgmFacturas();
+ }catch(e){
+  showAcgmError('Error al consultar Compras administración: '+(e.message||e));
+  $('aCountLabel').textContent='Error de consulta';
+ }finally{
+  $('aBuscarBtn').disabled=false;
+ }
+}
+
+function populateAcgmFilters(){
+ const curEmp=$('aEmpresa').value;
+ const curEst=$('aEstado').value;
+ const empresas=[...new Set(acgmFacturasRaw.map(f=>f.nombre_empresa).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+ const estados=[...new Set(acgmFacturasRaw.map(f=>f.estado).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+ $('aEmpresa').innerHTML='<option value="">Todas las empresas</option>'+empresas.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join('');
+ $('aEstado').innerHTML='<option value="">Todos los estados</option>'+estados.map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join('');
+ if(empresas.includes(curEmp))$('aEmpresa').value=curEmp;
+ if(estados.includes(curEst))$('aEstado').value=curEst;
+}
+
+function analyzeAcgmFactura(f){
+ const mFact=Number(f.monto_facturado||0);
+ const mPag=Number(f.monto_pagar||0);
+ const difMonto=Math.abs(mFact-mPag)>0.01;
+ const sinPdf=!f.url_factura;
+ const urgente=!!f.es_urgente;
+ const conObs=!!(f.observacion && String(f.observacion).trim());
+ return {difMonto,sinPdf,urgente,conObs};
+}
+
+function getFilteredAcgmFacturas(){
+ const q=$('aSearch').value.trim().toLocaleLowerCase('es');
+ const emp=$('aEmpresa').value;
+ const est=$('aEstado').value;
+ return acgmFacturasRaw.filter(f=>{
+  if(emp && f.nombre_empresa!==emp)return false;
+  if(est && f.estado!==est)return false;
+  if(q){
+   const hay=[f.nombre_proveedor,f.cuit,f.nro_factura,String(f.nro_acgm||''),String(f.nro_pago||''),f.nombre_empresa,f.nombre_rubro,f.autorizado_por,f.observacion]
+    .some(v=>(v||'').toLocaleLowerCase('es').includes(q));
+   if(!hay)return false;
+  }
+  const a=analyzeAcgmFactura(f);
+  if(acgmAuditFilter==='urgente')return a.urgente;
+  if(acgmAuditFilter==='dif_monto')return a.difMonto;
+  if(acgmAuditFilter==='sin_pdf')return a.sinPdf;
+  if(acgmAuditFilter==='con_obs')return a.conObs;
+  return true;
+ });
+}
+
+const ACGM_FLOW_STEPS=[
+ {key:'cargado',label:'Cargado'},
+ {key:'registrado',label:'Registrado'},
+ {key:'autorizado',label:'Autorizado'},
+ {key:'op',label:'OP'},
+ {key:'pagado',label:'Pagado'}
+];
+
+function formatAcgmDateTime(raw){
+ if(!raw)return '';
+ const d=new Date(raw);
+ if(Number.isNaN(d.getTime()))return String(raw).slice(0,16);
+ return d.toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+
+function renderAcgmMiniStepper(estado,resultado){
+ const est=String(estado||'').toLowerCase();
+ const idx=ACGM_FLOW_STEPS.findIndex(s=>s.key===est);
+ const isErr=String(resultado||'').toLowerCase().includes('rechaz') || est.includes('cancel') || est.includes('rechaz');
+ return `<div class="acgmMiniSteps" title="Proceso: ${ACGM_FLOW_STEPS.map(s=>s.label).join(' → ')}">${ACGM_FLOW_STEPS.map((s,i)=>{
+  let cls='';
+  if(idx>=0){
+   if(i<idx)cls='done';
+   else if(i===idx)cls=isErr?'err':(est==='pagado'?'done':'curr');
+  }
+  return `<span class="acgmMiniDot ${cls}" title="${esc(s.label)}"></span>`;
+ }).join('')}</div>`;
+}
+
+async function fetchAcgmFacturaDetail(idFactura){
+ if(!idFactura || (!acgmSession?.cookie && !acgmSession?.token))return null;
+ if(acgmDetailCache[idFactura])return acgmDetailCache[idFactura];
+ const res=await fetch(ACGM_PROXY_URL,{
+  method:'POST',
+  headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({
+   action:'get',
+   path:`/facturas/${encodeURIComponent(idFactura)}`,
+   cookie:acgmSession.cookie||undefined,
+   token:acgmSession.token||undefined
+  })
+ });
+ const json=await res.json().catch(()=>({}));
+ if(res.status===401 || json.status===401){
+  acgmLogout();
+  throw new Error('Tu sesión en ACGM expiró. Volvé a iniciar sesión.');
+ }
+ if(!res.ok || !json.ok){
+  const msg=json?.data?.message||json?.error||`Error HTTP ${json.status||res.status}`;
+  throw new Error(msg);
+ }
+ const det=json?.data?.factura || json?.data || null;
+ if(det)acgmDetailCache[idFactura]=det;
+ return det;
+}
+
+function extractAcgmDocLinks(det){
+ const out=[];
+ const seen=new Set();
+ const add=(label,url)=>{
+  if(!url || typeof url!=='string' || !url.startsWith('http'))return;
+  if(seen.has(url))return;
+  seen.add(url);
+  out.push({label,url});
+ };
+ add('📄 Factura',det.url_factura);
+ add('📋 Registro Chess',det.url_registro);
+ add('📊 Planilla de pago',det.url_planilla_pago);
+ add('🛡️ Autorización',det.url_ok || det.url_autorizacion);
+ if(det.url_ok && det.url_autorizacion && det.url_ok!==det.url_autorizacion){
+  add('🛡️ Autorización (adjunto)',det.url_autorizacion);
+ }
+ add('📑 Retención',det.url_retencion);
+
+ if(Array.isArray(det.retenciones)){
+  det.retenciones.forEach((r,i)=>{
+   const suf=det.retenciones.length>1?` #${i+1}`:'';
+   add(`📑 Retención${suf}`,r.url);
+   add(`🧾 Comprobante ret.${suf}`,r.url_comprobante);
+   add(`📒 Cta. Cte.${suf}`,r.url_cuenta_corriente);
+   add(`📦 Remito${suf}`,r.url_remito);
+  });
+ }
+
+ if(Array.isArray(det.ops)){
+  det.ops.forEach((op,i)=>{
+   const nro=op.nro_op||op.nro_pago||op.numero||det.nro_pago||'';
+   const lbl=`💳 OP${nro?` #${nro}`:(det.ops.length>1?` #${i+1}`:'')}`;
+   const direct=op.url||op.url_op||op.url_comprobante||op.url_pdf||op.archivo||op.link;
+   add(lbl,direct);
+   Object.entries(op||{}).forEach(([k,v])=>{
+    if(k.toLowerCase().includes('url') && typeof v==='string' && v.startsWith('http')){
+     add(`${lbl} (${k.replace(/^url_/,'')})`,v);
+    }
+   });
+  });
+ }
+
+ const extraLists=[
+  ['remitos','📦 Remito'],
+  ['notas_credito','📝 Nota de crédito'],
+  ['transferencias','🏦 Transferencia'],
+  ['cuenta_corriente','📒 Cuenta corriente']
+ ];
+ extraLists.forEach(([key,baseLabel])=>{
+  if(!Array.isArray(det[key]))return;
+  det[key].forEach((item,i)=>{
+   const suf=det[key].length>1?` #${i+1}`:'';
+   const direct=item?.url||item?.url_comprobante||item?.url_pdf||item?.archivo;
+   add(`${baseLabel}${suf}`,direct);
+   Object.entries(item||{}).forEach(([k,v])=>{
+    if(k.toLowerCase().includes('url') && typeof v==='string' && v.startsWith('http')){
+     add(`${baseLabel}${suf}`,v);
+    }
+   });
+  });
+ });
+ return out;
+}
+
+function renderAcgmHistorialHtml(det){
+ const hist=Array.isArray(det.historial)?det.historial:[];
+ const cancel=Array.isArray(det.historial_cancelaciones)?det.historial_cancelaciones:[];
+ if(!hist.length && !cancel.length)return '';
+
+ const byStep={};
+ hist.forEach(h=>{
+  const k=String(h.estado||'').toLowerCase();
+  byStep[k]=h;
+ });
+
+ const lastHist=hist[hist.length-1]||{};
+ const currKey=String(det.estado||lastHist.estado||'').toLowerCase();
+ const currIdx=ACGM_FLOW_STEPS.findIndex(s=>s.key===currKey);
+
+ const stepperHtml=`<div class="acgmStepper">${ACGM_FLOW_STEPS.map((step,i)=>{
+  const entry=byStep[step.key];
+  const isErr=entry && (String(entry.resultado||'').toLowerCase().includes('rechaz') || entry.vuelve_a);
+  let cls='';
+  let icon=String(i+1);
+  if(entry){
+   cls=isErr?'err':(i===currIdx && step.key!=='pagado'?'curr':'done');
+   icon=isErr?'✕':'✓';
+  }else if(currIdx>=0 && i<currIdx){
+   cls='done';
+   icon='✓';
+  }else if(i===currIdx){
+   cls=step.key==='pagado'?'done':'curr';
+   icon=step.key==='pagado'?'✓':'●';
+  }
+  const user=entry?.usuario||'';
+  const dt=entry?.fecha?formatAcgmDateTime(entry.fecha):'';
+  return `<div class="acgmStep ${cls}">
+   <div class="acgmStepDot">${icon}</div>
+   <div class="acgmStepName">${esc(step.label)}</div>
+   <div class="acgmStepUser" title="${esc(user)}">${user?esc(user):'Pendiente'}</div>
+   ${dt?`<div class="acgmStepDate">${esc(dt)}</div>`:''}
+  </div>`;
+ }).join('')}</div>`;
+
+ const timelineHtml=`<div class="acgmHistList">${hist.map(h=>{
+  const res=String(h.resultado||'').toLowerCase();
+  const isErr=res.includes('rechaz') || !!h.vuelve_a;
+  return `<div class="acgmHistItem ${isErr?'err':''}">
+   <div class="acgmHistHead">
+    <div>
+     <span class="pill ${isErr?'no':''}" style="text-transform:uppercase;font-size:10.5px">${esc(h.estado||'—')}</span>
+     ${h.resultado?`<span style="font-size:11px;font-weight:700;color:${isErr?'var(--danger)':'var(--accent2)'};margin-left:4px">${esc(h.resultado)}</span>`:''}
+     ${h.vuelve_a?`<span style="font-size:11px;color:var(--danger);margin-left:4px">↩ vuelve a ${esc(h.vuelve_a)}</span>`:''}
+    </div>
+    <div style="font-size:11.5px;color:var(--muted)">
+     <strong>${esc(h.usuario||'Sistema')}</strong> · ${esc(formatAcgmDateTime(h.fecha))}
+    </div>
+   </div>
+   ${h.observaciones?`<div class="acgmHistObs">${esc(h.observaciones)}</div>`:''}
+  </div>`;
+ }).join('')}</div>`;
+
+ return `<div class="acgmHistTitle">Historial de estados e intervinientes</div>${stepperHtml}${timelineHtml}`;
+}
+
+function renderAcgmFacturas(){
+ const list=getFilteredAcgmFacturas();
+ let sumFact=0, cUrg=0, cAlert=0;
+ list.forEach(f=>{
+  sumFact+=Number(f.monto_facturado||0);
+  const a=analyzeAcgmFactura(f);
+  if(a.urgente)cUrg++;
+  if(a.difMonto || a.sinPdf)cAlert++;
+ });
+
+ $('aMetTotal').textContent=list.length.toLocaleString('es-AR');
+ $('aMetMonto').textContent=formatMoneyAR(sumFact);
+ $('aMetUrgentes').textContent=cUrg.toLocaleString('es-AR');
+ $('aMetAlertas').textContent=cAlert.toLocaleString('es-AR');
+
+ const tipoTxt=acgmTipo==='ambas'?'ACGM + Solicitudes':(acgmTipo==='solicitud'?'Solicitudes':'ACGM');
+ $('aCountLabel').textContent=`${list.length} factura(s) [${tipoTxt}] en vista (de ${acgmFacturasRaw.length} cargadas · total servidor: ${acgmTotalServer})`;
+ $('aComprasEmpty').hidden=list.length!==0;
+
+ $('aComprasRows').innerHTML=list.map((f,idx)=>{
+  const a=analyzeAcgmFactura(f);
+  const cached=f.id_factura?acgmDetailCache[f.id_factura]:null;
+  const urlAut=f.url_ok||f.url_autorizacion||cached?.url_ok||cached?.url_autorizacion||'';
+  const isSol=(f._tipoOrigen==='solicitud' || f.nro_acgm==null);
+  const metodos=Array.isArray(f.tipo_pago)?f.tipo_pago.map(tp=>tp.nombre_metodo_pago).filter(Boolean).join(', '):'—';
+  const origenHtml=isSol
+   ? `<span class="pill prealta" style="padding:1px 6px;font-size:10px">Solicitud</span>${f.autorizado_por?` · Aut: ${esc(String(f.autorizado_por).toUpperCase())}`:''}`
+   : `ACGM #${esc(f.nro_acgm)}`;
+  return `
+   <tr class="item" data-acgm-idx="${idx}">
+    <td>
+     <div>${esc((f.fecha_creacion||'—').slice(0,10))}</div>
+     <div style="font-size:11px;color:var(--muted)">${origenHtml}${a.urgente?' <span class="pill no" style="padding:1px 6px;font-size:10px">⚡ URG</span>':''}</div>
+    </td>
+    <td>
+     <strong class="code">${esc(f.nro_factura||'S/N')}</strong>
+     <div style="font-size:11px;color:var(--muted);text-transform:uppercase">${esc(f.nombre_empresa||'—')}${f.nombre_rubro?` · ${esc(f.nombre_rubro)}`:''}</div>
+    </td>
+    <td>
+     <strong>${esc(f.nombre_proveedor||'—')}</strong>
+     <div style="font-size:11px;color:var(--muted)">CUIT: ${esc(f.cuit||'—')}</div>
+    </td>
+    <td class="num">
+     <div><strong>${formatMoneyAR(f.monto_facturado)}</strong></div>
+     ${a.difMonto?`<div style="font-size:11px;color:var(--danger)">A pagar: ${formatMoneyAR(f.monto_pagar)}</div>`:`<div style="font-size:11px;color:var(--muted)">Ret.: ${formatMoneyAR(f.monto_retencion)}</div>`}
+    </td>
+    <td>
+     <span class="pill ${f.estado==='pagado'?'':'prealta'}">${esc(f.estado||'—')}</span>
+     ${renderAcgmMiniStepper(f.estado,f.resultado)}
+     <div style="font-size:11px;color:var(--muted);margin-top:3px">${esc(metodos)}${f.nro_pago?` · OP #${esc(f.nro_pago)}`:''}</div>
+    </td>
+    <td onclick="event.stopPropagation()">
+     ${f.url_factura?`<a class="evidLinkBtn" href="${esc(f.url_factura)}" target="_blank" rel="noopener" style="padding:4px 8px">📄 FC</a>`:'<span class="pill no">Sin PDF</span>'}
+     ${urlAut?` <a class="evidLinkBtn" href="${esc(urlAut)}" target="_blank" rel="noopener" style="padding:4px 8px">🛡️ Aut</a>`:''}
+     ${f.url_retencion?` <a class="evidLinkBtn" href="${esc(f.url_retencion)}" target="_blank" rel="noopener" style="padding:4px 8px">📑 Ret</a>`:''}
+    </td>
+   </tr>
+  `;
+ }).join('');
+
+ $('aComprasRows').querySelectorAll('[data-acgm-idx]').forEach(tr=>{
+  tr.onclick=()=>openAcgmFacturaDetail(list[Number(tr.dataset.acgmIdx)]);
+ });
+}
+
+function renderAcgmFacturaDetailContent(base,det){
+ const f={...base,...(det||{})};
+ const prov=det?.proveedor||{};
+ const isSol=(f._tipoOrigen==='solicitud' || f.nro_acgm==null);
+ const metodos=Array.isArray(f.tipo_pago)?f.tipo_pago.map(tp=>tp.nombre_metodo_pago).filter(Boolean).join(', '):'—';
+ const provNombre=prov.nombre||f.nombre_proveedor||'Proveedor';
+ const provCuit=prov.cuit||f.cuit||'—';
+ const provCbu=prov.cbu||f.cbu||'—';
+
+ $('aDetTitle').textContent=`Factura ${f.nro_factura||'S/N'} · ${provNombre}`;
+ $('aDetMeta').textContent=`${isSol?'Solicitud de pago':'ACGM #'+(f.nro_acgm??'—')} (ID ${f.id_factura??'—'}) · Creada: ${f.fecha_creacion||'—'}${f.fecha_modificacion?` · Modificada: ${f.fecha_modificacion}`:''}`;
+
+ const docs=extractAcgmDocLinks(f);
+ $('aDetLinks').innerHTML=docs.length
+  ? docs.map(d=>`<a class="evidLinkBtn" href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.label)}</a>`).join('')
+  : '<span class="pill no">Sin documentos adjuntos</span>';
+
+ const histBox=$('aDetHistorialBox');
+ const histHtml=renderAcgmHistorialHtml(f);
+ if(histHtml){
+  histBox.hidden=false;
+  histBox.innerHTML=histHtml;
+ }else{
+  histBox.hidden=true;
+  histBox.innerHTML='';
+ }
+
+ const fields=[
+  ['Tipo',isSol?'Solicitud':'ACGM'+(f.nro_acgm!=null?` #${f.nro_acgm}`:'')],
+  ['Empresa',f.nombre_empresa||'—'],
+  ['Rubro',f.nombre_rubro||'—'],
+  ['Proveedor',provNombre],
+  ['CUIT',provCuit],
+  ['CBU',provCbu],
+  ['Autorizado por',f.autorizado_por?String(f.autorizado_por).toUpperCase():'—'],
+  ['Estado',`${f.estado||'—'}${f.resultado?` (${f.resultado})`:''}`],
+  ['Estado pago',f.estado_pago||'—'],
+  ['N° Pago / OP',f.nro_pago??(Array.isArray(f.ops)&&f.ops.length?f.ops.map(o=>o.nro_op||o.nro_pago||o.numero||'OP').join(', '):'—')],
+  ['Método de pago',metodos],
+  ['Urgente',f.es_urgente?'Sí (Urgente)':'No'],
+  ['Monto facturado',formatMoneyAR(f.monto_facturado)],
+  ['Monto a pagar',formatMoneyAR(f.monto_pagar)],
+  ['Retención',formatMoneyAR(f.monto_retencion)],
+  ['Monto final',f.monto_final!=null?formatMoneyAR(f.monto_final):'—']
+ ];
+ $('aDetGrid').innerHTML=fields.map(([k,v])=>`<div class="field"><small>${esc(k)}</small><strong>${esc(String(v))}</strong></div>`).join('');
+
+ const obsBox=$('aDetObsBox');
+ if(f.observacion && String(f.observacion).trim()){
+  obsBox.hidden=false;
+  obsBox.textContent='Observación: '+f.observacion;
+ }else{
+  obsBox.hidden=true;
+  obsBox.textContent='';
+ }
+}
+
+async function openAcgmFacturaDetail(f){
+ if(!f)return;
+ const cached=f.id_factura?acgmDetailCache[f.id_factura]:null;
+ renderAcgmFacturaDetailContent(f,cached);
+ $('aDetLoading').hidden=!!cached || !f.id_factura;
+ show('acgmFacturaModal');
+ if(!cached && f.id_factura){
+  try{
+   const det=await fetchAcgmFacturaDetail(f.id_factura);
+   $('aDetLoading').hidden=true;
+   if(det){
+    renderAcgmFacturaDetailContent(f,det);
+    renderAcgmFacturas();
+   }
+  }catch(e){
+   $('aDetLoading').hidden=true;
+   showAcgmError('No se pudo cargar el detalle completo de la factura: '+(e.message||e));
+  }
+ }
+}
+
+function exportAcgmComprasExcel(){
+ if(!window.XLSX){alert('No se encontró la librería SheetJS (XLSX).');return;}
+ const list=getFilteredAcgmFacturas();
+ if(!list.length){alert('No hay facturas en vista para exportar.');return;}
+ const rows=list.map(f=>({
+  'Tipo':(f._tipoOrigen==='solicitud'||f.nro_acgm==null)?'Solicitud':'ACGM',
+  'Fecha creación':f.fecha_creacion||'',
+  'N° ACGM':f.nro_acgm??'',
+  'N° Factura':f.nro_factura||'',
+  'Empresa':f.nombre_empresa||'',
+  'Rubro':f.nombre_rubro||'',
+  'Proveedor':f.nombre_proveedor||'',
+  'CUIT':f.cuit||'',
+  'CBU':f.cbu||'',
+  'Autorizado por':f.autorizado_por?String(f.autorizado_por).toUpperCase():'',
+  'Monto facturado':Number(f.monto_facturado||0),
+  'Monto a pagar':Number(f.monto_pagar||0),
+  'Retención':Number(f.monto_retencion||0),
+  'Estado':f.estado||'',
+  'Resultado':f.resultado||'',
+  'Estado pago':f.estado_pago||'',
+  'N° Pago':f.nro_pago??'',
+  'Método pago':Array.isArray(f.tipo_pago)?f.tipo_pago.map(tp=>tp.nombre_metodo_pago).join(', '):'',
+  'Urgente':f.es_urgente?'Sí':'No',
+  'Observación':f.observacion||''
+ }));
+ const ws=XLSX.utils.json_to_sheet(rows);
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,ws,'Compras_Administracion');
+ XLSX.writeFile(wb,`ACGM_${acgmTipo}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function initAcgmComprasView(){
+ loadAcgmSession();
+ updateAcgmAuthUI();
+ if(!$('aHasta').value){
+  const hoy=new Date();
+  const hace30=new Date(hoy.getTime()-30*86400000);
+  $('aHasta').value=hoy.toISOString().slice(0,10);
+  $('aDesde').value=hace30.toISOString().slice(0,10);
+ }
+ if((acgmSession?.cookie || acgmSession?.token) && !acgmFacturasRaw.length){
+  loadAcgmFacturas();
+ }
+}
+
+document.querySelectorAll('#acgmTipoSwitch [data-acgm-tipo]').forEach(btn=>{
+ btn.addEventListener('click',()=>{
+  const nextTipo=btn.dataset.acgmTipo;
+  if(nextTipo===acgmTipo)return;
+  acgmTipo=nextTipo;
+  document.querySelectorAll('#acgmTipoSwitch [data-acgm-tipo]').forEach(b=>b.classList.toggle('active',b===btn));
+  loadAcgmFacturas();
+ });
+});
+
+$('acgmLoginBtn').addEventListener('click',acgmLogin);
+$('acgmLoginPass').addEventListener('keydown',e=>{if(e.key==='Enter')acgmLogin();});
+$('acgmLogoutBtn').addEventListener('click',acgmLogout);
+$('acgmRefreshBtn').addEventListener('click',loadAcgmFacturas);
+$('aBuscarBtn').addEventListener('click',loadAcgmFacturas);
+$('acgmExportExcelBtn').addEventListener('click',exportAcgmComprasExcel);
+$('aSearch').addEventListener('input',renderAcgmFacturas);
+$('aEmpresa').addEventListener('change',renderAcgmFacturas);
+$('aEstado').addEventListener('change',renderAcgmFacturas);
+document.querySelectorAll('#aAuditChips [data-aaudit]').forEach(btn=>{
+ btn.addEventListener('click',()=>{
+  acgmAuditFilter=btn.dataset.aaudit;
+  document.querySelectorAll('#aAuditChips [data-aaudit]').forEach(b=>b.classList.toggle('active',b===btn));
+  renderAcgmFacturas();
+ });
+});
 cfgLoad();
 </script>
 </body>
