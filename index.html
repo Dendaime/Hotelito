@@ -356,7 +356,22 @@ input::placeholder{color:#9aa8ad}
 .acgmHistItem.err::before{background:var(--danger)}
 .acgmHistHead{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px}
 .acgmHistObs{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35}
-@media (max-width:650px){.acgmStepper{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:650px){
+ .acgmStepper{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #viewCompras .tablewrap{overflow-x:hidden}
+ #viewCompras table{width:100%;min-width:0;table-layout:fixed}
+ #viewCompras th:nth-child(5),#viewCompras td:nth-child(5),
+ #viewCompras th:nth-child(6),#viewCompras td:nth-child(6){display:none}
+ #viewCompras th:nth-child(1),#viewCompras td:nth-child(1){width:23%}
+ #viewCompras th:nth-child(2),#viewCompras td:nth-child(2){width:26%}
+ #viewCompras th:nth-child(3),#viewCompras td:nth-child(3){width:31%}
+ #viewCompras th:nth-child(4),#viewCompras td:nth-child(4){width:20%}
+ #viewCompras th{padding:7px 4px;font-size:9.5px;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ #viewCompras td{padding:6px 4px;font-size:11px;line-height:1.18;vertical-align:middle;word-break:break-word}
+ #viewCompras td .code{font-size:10.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ #viewCompras .acgmMobHide{display:none}
+ #viewCompras .acgmCatPill{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:1px 5px;font-size:9.5px;margin-top:2px}
+}
 .acgmDetails{background:var(--panel2);border:1px solid var(--line);border-radius:12px;margin-top:10px;overflow:hidden}
 .acgmDetails summary{list-style:none;cursor:pointer;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:800;color:var(--text);user-select:none}
 .acgmDetails summary::-webkit-details-marker{display:none}
@@ -10050,7 +10065,7 @@ function renderAcgmFacturas(){
     </td>
     <td>
      <strong>${esc(f.nombre_proveedor||'—')}</strong>
-     <div style="font-size:11px;color:var(--muted)">CUIT: ${esc(f.cuit||'—')}</div>
+     <div class="acgmMobHide" style="font-size:11px;color:var(--muted)">CUIT: ${esc(f.cuit||'—')}</div>
     </td>
     <td>
      <span style="font-size:12.5px">${esc(f.nombre_rubro||'—')}</span>
