@@ -3080,9 +3080,13 @@ async function loadData(){
    switchView('planificacion');
   }
 
-  $('topNotice').textContent=isEditor
+  const tn=$('topNotice');
+  tn.textContent=isEditor
    ?'Modo editor habilitado. Podés administrar la planificación operativa, el catálogo maestro, los recuentos físicos y las pre-altas.'
    :'Consulta pública habilitada. Para administrar la planificación, artículos o fotografías, ingresá con una cuenta de editor autorizada.';
+  tn.hidden=false;
+  clearTimeout(window._topNoticeTimer);
+  window._topNoticeTimer=setTimeout(()=>{tn.hidden=true;},4000);
 
   populateCategories();
   render();
@@ -9419,9 +9423,10 @@ function showAcgmError(msg){
 
 function updateAcgmAuthUI(){
  const connected=!!(acgmSession?.cookie || acgmSession?.token);
+ const hasOffline=(typeof getOfflineControlledAcgmRows==='function') && getOfflineControlledAcgmRows().length>0;
  $('acgmLoginForm').style.display=connected?'none':'grid';
  $('acgmConnectedActions').style.display=connected?'flex':'none';
- $('acgmComprasArea').hidden=!connected;
+ $('acgmComprasArea').hidden=!(connected || hasOffline);
  const notice=$('acgmDisconnectedNotice');
  if(notice)notice.style.display=connected?'none':'flex';
  const badge=$('acgmConnBadge');
@@ -9657,29 +9662,107 @@ function saveAcgmAuditMetaLocal(){
  try{localStorage.setItem(ACGM_AUDIT_META_KEY,JSON.stringify(acgmAuditMeta));}catch{}
 }
 
+function buildAcgmRecordSnapshot(f){
+ if(!f)return null;
+ return {
+  id_factura:f.id_factura??null,
+  nro_factura:f.nro_factura||'',
+  nro_acgm:f.nro_acgm??null,
+  _tipoOrigen:f._tipoOrigen||(f.nro_acgm==null?'solicitud':'acgm'),
+  fecha_creacion:f.fecha_creacion||'',
+  fecha_modificacion:f.fecha_modificacion||'',
+  nombre_empresa:f.nombre_empresa||'',
+  nombre_rubro:f.nombre_rubro||'',
+  nombre_proveedor:f.nombre_proveedor||f.proveedor?.nombre||'',
+  cuit:f.cuit||f.proveedor?.cuit||'',
+  cbu:f.cbu||f.proveedor?.cbu||'',
+  monto_facturado:f.monto_facturado??0,
+  monto_pagar:f.monto_pagar??0,
+  monto_retencion:f.monto_retencion??0,
+  estado:f.estado||'',
+  resultado:f.resultado||'',
+  estado_pago:f.estado_pago||'',
+  nro_pago:f.nro_pago??null,
+  tipo_pago:Array.isArray(f.tipo_pago)?f.tipo_pago:[],
+  autorizado_por:f.autorizado_por||'',
+  observacion:f.observacion||''
+ };
+}
+
+function getOfflineControlledAcgmRows(){
+ return Object.entries(acgmAuditMeta)
+  .filter(([,m])=>m && (m.catId || (m.obs && m.obs.trim())))
+  .map(([key,m])=>{
+   if(m.snapshot)return {...m.snapshot,_offlineSnapshot:true};
+   return {
+    id_factura:key,
+    nro_factura:`ID ${key}`,
+    nro_acgm:null,
+    _tipoOrigen:'solicitud',
+    fecha_creacion:'',
+    nombre_empresa:'Sin sincronizar',
+    nombre_rubro:'—',
+    nombre_proveedor:'Registro controlado (sin caché)',
+    cuit:'—',
+    monto_facturado:0,
+    monto_pagar:0,
+    monto_retencion:0,
+    estado:'—',
+    _offlineSnapshot:true
+   };
+  })
+  .sort((a,b)=>String(b.fecha_creacion||'').localeCompare(String(a.fecha_creacion||'')));
+}
+
+function refreshAcgmOfflineViewIfDisconnected(){
+ const connected=!!(acgmSession?.cookie || acgmSession?.token);
+ if(connected)return;
+ const rows=getOfflineControlledAcgmRows();
+ acgmFacturasRaw=rows;
+ acgmTotalServer=rows.length;
+ updateAcgmAuthUI();
+ if(rows.length){
+  populateAcgmFilters();
+  renderAcgmFacturas();
+  $('aCountLabel').textContent=`${rows.length} registro(s) controlados / observados (sin conexión ACGM)`;
+ }
+}
+
 async function loadAcgmAuditState(){
  loadAcgmAuditStateLocal();
+ refreshAcgmOfflineViewIfDisconnected();
  if(typeof sb==='undefined' || !sb)return;
  try{
   const [resCats,resMeta]=await Promise.all([
    sb.from('acgm_auditoria_categorias').select('id,nombre,color').order('created_at',{ascending:true}),
-   sb.from('acgm_auditoria_registros').select('registro_key,categoria_id,observacion')
+   sb.from('acgm_auditoria_registros').select('registro_key,categoria_id,observacion,snapshot')
   ]);
   if(!resCats.error && Array.isArray(resCats.data)){
    acgmAuditCats=resCats.data.map(r=>({id:r.id,name:r.nombre,color:r.color}));
    saveAcgmAuditCatsLocal();
   }
-  if(!resMeta.error && Array.isArray(resMeta.data)){
+  let metaRows=resMeta.data;
+  if(resMeta.error){
+   const fb=await sb.from('acgm_auditoria_registros').select('registro_key,categoria_id,observacion');
+   metaRows=fb.data;
+  }
+  if(Array.isArray(metaRows)){
    const map={};
-   resMeta.data.forEach(r=>{
+   metaRows.forEach(r=>{
     if(r.categoria_id || (r.observacion && r.observacion.trim())){
-     map[r.registro_key]={catId:r.categoria_id||'',obs:r.observacion||''};
+     const localSnap=acgmAuditMeta[r.registro_key]?.snapshot||null;
+     map[r.registro_key]={
+      catId:r.categoria_id||'',
+      obs:r.observacion||'',
+      snapshot:r.snapshot||localSnap
+     };
     }
    });
    acgmAuditMeta=map;
    saveAcgmAuditMetaLocal();
   }
   renderAcgmCatFilterUI();
+  refreshAcgmOfflineViewIfDisconnected();
   renderAcgmFacturas();
  }catch{}
 }
@@ -9691,12 +9774,18 @@ async function syncAcgmRecordMetaToServer(key){
   if(!entry || (!entry.catId && !entry.obs)){
    await sb.from('acgm_auditoria_registros').delete().eq('registro_key',key);
   }else{
-   await sb.from('acgm_auditoria_registros').upsert({
+   const payload={
     registro_key:key,
     categoria_id:entry.catId||null,
     observacion:entry.obs||'',
+    snapshot:entry.snapshot||null,
     updated_at:new Date().toISOString()
-   },{onConflict:'registro_key'});
+   };
+   const res=await sb.from('acgm_auditoria_registros').upsert(payload,{onConflict:'registro_key'});
+   if(res.error){
+    delete payload.snapshot;
+    await sb.from('acgm_auditoria_registros').upsert(payload,{onConflict:'registro_key'});
+   }
   }
  }catch{}
 }
@@ -9709,7 +9798,8 @@ function assignAcgmCategory(f,catId){
  const key=getAcgmRecordKey(f);
  if(!key)return;
  const prev=acgmAuditMeta[key]||{};
- acgmAuditMeta[key]={...prev,catId:catId||''};
+ const snap=buildAcgmRecordSnapshot(f)||prev.snapshot||null;
+ acgmAuditMeta[key]={...prev,catId:catId||'',snapshot:snap};
  if(!acgmAuditMeta[key].catId && !acgmAuditMeta[key].obs)delete acgmAuditMeta[key];
  saveAcgmAuditMetaLocal();
  syncAcgmRecordMetaToServer(key);
@@ -10160,11 +10250,12 @@ function renderAcgmFacturaDetailContent(base,det){
 
 async function openAcgmFacturaDetail(f){
  if(!f)return;
+ const connected=!!(acgmSession?.cookie || acgmSession?.token);
  const cached=f.id_factura?acgmDetailCache[f.id_factura]:null;
  renderAcgmFacturaDetailContent(f,cached);
- $('aDetLoading').hidden=!!cached || !f.id_factura;
+ $('aDetLoading').hidden=!connected || !!cached || !f.id_factura;
  show('acgmFacturaModal');
- if(!cached && f.id_factura){
+ if(connected && !cached && f.id_factura){
   try{
    const det=await fetchAcgmFacturaDetail(f.id_factura);
    $('aDetLoading').hidden=true;
@@ -10308,7 +10399,9 @@ $('aDetAuditObsSaveBtn').addEventListener('click',()=>{
  if(!acgmCurrentDetailKey)return;
  const val=$('aDetAuditObsInput').value.trim();
  const prev=acgmAuditMeta[acgmCurrentDetailKey]||{};
- acgmAuditMeta[acgmCurrentDetailKey]={...prev,obs:val};
+ const curRow=acgmFacturasRaw.find(r=>getAcgmRecordKey(r)===acgmCurrentDetailKey);
+ const snap=buildAcgmRecordSnapshot(curRow)||prev.snapshot||null;
+ acgmAuditMeta[acgmCurrentDetailKey]={...prev,obs:val,snapshot:snap};
  if(!acgmAuditMeta[acgmCurrentDetailKey].catId && !acgmAuditMeta[acgmCurrentDetailKey].obs){
   delete acgmAuditMeta[acgmCurrentDetailKey];
  }
