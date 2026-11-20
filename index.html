@@ -357,6 +357,13 @@ input::placeholder{color:#9aa8ad}
 .acgmHistHead{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px}
 .acgmHistObs{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35}
 @media (max-width:650px){.acgmStepper{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.acgmDetails{background:var(--panel2);border:1px solid var(--line);border-radius:12px;margin-top:10px;overflow:hidden}
+.acgmDetails summary{list-style:none;cursor:pointer;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12.5px;font-weight:800;color:var(--text);user-select:none}
+.acgmDetails summary::-webkit-details-marker{display:none}
+.acgmDetails summary::after{content:"▾";font-size:14px;color:var(--muted);transition:transform .15s ease}
+.acgmDetails[open] summary::after{transform:rotate(180deg)}
+.acgmDetails[open] summary{border-bottom:1px solid var(--line)}
+.acgmDetailsBody{padding:12px 14px}
 .vestaAuthBar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 16px;margin-bottom:16px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
 .vestaLoginInline{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .vestaLoginInline input{padding:9px 11px;font-size:13px;min-width:160px}
@@ -1703,14 +1710,13 @@ input::placeholder{color:#9aa8ad}
 
 
 <div id="acgmFacturaModal" class="overlay">
- <div class="dialog" style="max-width:820px">
+ <div class="dialog" style="max-width:780px">
   <button class="secondary closeDialog" data-close="acgmFacturaModal">Cerrar</button>
   <h2 id="aDetTitle" style="margin:0 0 4px;padding-right:70px">Detalle de factura</h2>
   <p id="aDetMeta" style="margin:0 0 12px;font-size:12px;color:var(--muted)"></p>
-  <div id="aDetLoading" class="notice info" style="margin:0 0 10px" hidden>Cargando documentos relacionados e historial de estados desde ACGM…</div>
-  <div id="aDetLinks" class="evidLinksRow"></div>
-  <div id="aDetHistorialBox" class="acgmHistCard" hidden></div>
-  <div id="aDetGrid" class="fields" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:12px"></div>
+  <div id="aDetLoading" class="notice info" style="margin:0 0 10px" hidden>Cargando comprobantes e historial de estados desde ACGM…</div>
+  <div id="aDetLinks"></div>
+  <div id="aDetHistorialBox" hidden></div>
   <div id="aDetObsBox" class="notice info" style="margin-top:12px" hidden></div>
  </div>
 </div>
@@ -9680,7 +9686,10 @@ function renderAcgmHistorialHtml(det){
   </div>`;
  }).join('')}</div>`;
 
- return `<div class="acgmHistTitle">Historial de estados e intervinientes</div>${stepperHtml}${timelineHtml}`;
+ return `<details class="acgmDetails">
+  <summary><span>🕒 Historial de estados e intervinientes <span style="font-weight:600;color:var(--muted)">(${hist.length} evento${hist.length===1?'':'s'}${det.estado?` · ${esc(det.estado)}`:''})</span></span></summary>
+  <div class="acgmDetailsBody">${stepperHtml}${timelineHtml}</div>
+ </details>`;
 }
 
 function renderAcgmFacturas(){
@@ -9747,18 +9756,18 @@ function renderAcgmFacturaDetailContent(base,det){
  const f={...base,...(det||{})};
  const prov=det?.proveedor||{};
  const isSol=(f._tipoOrigen==='solicitud' || f.nro_acgm==null);
- const metodos=Array.isArray(f.tipo_pago)?f.tipo_pago.map(tp=>tp.nombre_metodo_pago).filter(Boolean).join(', '):'—';
  const provNombre=prov.nombre||f.nombre_proveedor||'Proveedor';
- const provCuit=prov.cuit||f.cuit||'—';
- const provCbu=prov.cbu||f.cbu||'—';
 
  $('aDetTitle').textContent=`Factura ${f.nro_factura||'S/N'} · ${provNombre}`;
  $('aDetMeta').textContent=`${isSol?'Solicitud de pago':'ACGM #'+(f.nro_acgm??'—')} (ID ${f.id_factura??'—'}) · Creada: ${f.fecha_creacion||'—'}${f.fecha_modificacion?` · Modificada: ${f.fecha_modificacion}`:''}`;
 
  const docs=extractAcgmDocLinks(f);
  $('aDetLinks').innerHTML=docs.length
-  ? docs.map(d=>`<a class="evidLinkBtn" href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.label)}</a>`).join('')
-  : '<span class="pill no">Sin documentos adjuntos</span>';
+  ? `<details class="acgmDetails">
+      <summary><span>📎 Comprobantes y archivos disponibles <span style="font-weight:600;color:var(--muted)">(${docs.length})</span></span></summary>
+      <div class="acgmDetailsBody"><div class="evidLinksRow" style="margin:0">${docs.map(d=>`<a class="evidLinkBtn" href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.label)}</a>`).join('')}</div></div>
+     </details>`
+  : '<div class="acgmDetails"><div class="acgmDetailsBody"><span class="pill no">Sin comprobantes adjuntos</span></div></div>';
 
  const histBox=$('aDetHistorialBox');
  const histHtml=renderAcgmHistorialHtml(f);
@@ -9770,30 +9779,10 @@ function renderAcgmFacturaDetailContent(base,det){
   histBox.innerHTML='';
  }
 
- const fields=[
-  ['Tipo',isSol?'Solicitud':'ACGM'+(f.nro_acgm!=null?` #${f.nro_acgm}`:'')],
-  ['Empresa',f.nombre_empresa||'—'],
-  ['Rubro',f.nombre_rubro||'—'],
-  ['Proveedor',provNombre],
-  ['CUIT',provCuit],
-  ['CBU',provCbu],
-  ['Autorizado por',f.autorizado_por?String(f.autorizado_por).toUpperCase():'—'],
-  ['Estado',`${f.estado||'—'}${f.resultado?` (${f.resultado})`:''}`],
-  ['Estado pago',f.estado_pago||'—'],
-  ['N° Pago / OP',f.nro_pago??(Array.isArray(f.ops)&&f.ops.length?f.ops.map(o=>o.nro_op||o.nro_pago||o.numero||'OP').join(', '):'—')],
-  ['Método de pago',metodos],
-  ['Urgente',f.es_urgente?'Sí (Urgente)':'No'],
-  ['Monto facturado',formatMoneyAR(f.monto_facturado)],
-  ['Monto a pagar',formatMoneyAR(f.monto_pagar)],
-  ['Retención',formatMoneyAR(f.monto_retencion)],
-  ['Monto final',f.monto_final!=null?formatMoneyAR(f.monto_final):'—']
- ];
- $('aDetGrid').innerHTML=fields.map(([k,v])=>`<div class="field"><small>${esc(k)}</small><strong>${esc(String(v))}</strong></div>`).join('');
-
  const obsBox=$('aDetObsBox');
  if(f.observacion && String(f.observacion).trim()){
   obsBox.hidden=false;
-  obsBox.textContent='Observación: '+f.observacion;
+  obsBox.innerHTML=`<strong>Observación carga:</strong> ${esc(f.observacion)}`;
  }else{
   obsBox.hidden=true;
   obsBox.textContent='';
