@@ -9978,18 +9978,19 @@ function renderAcgmFacturas(){
   const a=analyzeAcgmFactura(f);
   const meta=acgmAuditMeta[getAcgmRecordKey(f)]||{};
   const cat=meta.catId?getAcgmCatById(meta.catId):null;
-  const catHtml=cat?`<div><span class="acgmCatPill" style="background:${esc(cat.color)}1a;color:${esc(cat.color)};border-color:${esc(cat.color)}55"><span class="acgmCatDot" style="width:7px;height:7px;flex:0 0 7px;background:${esc(cat.color)}"></span>${esc(cat.name)}</span>${meta.obs?' <span title="Tiene observación de auditoría">📝</span>':''}</div>`:(meta.obs?'<div style="font-size:11px;color:var(--muted);margin-top:2px">📝 Obs. auditoría</div>':'');
+  const catHtml=cat?`<div><span class="acgmCatPill" style="background:${esc(cat.color)}1a;color:${esc(cat.color)};border-color:${esc(cat.color)}55"><span class="acgmCatDot" style="width:7px;height:7px;flex:0 0 7px;background:${esc(cat.color)}"></span>${esc(cat.name)}</span></div>`:'';
+  const obsIcon=meta.obs?' <span title="Tiene observación de auditoría">📝</span>':'';
   const isSol=(f._tipoOrigen==='solicitud' || f.nro_acgm==null);
   const metodos=Array.isArray(f.tipo_pago)?f.tipo_pago.map(tp=>tp.nombre_metodo_pago).filter(Boolean).join(', '):'—';
   const origenHtml=isSol
-   ? `<span class="pill prealta" style="padding:1px 6px;font-size:10px">Solicitud</span>${f.autorizado_por?` · Aut: ${esc(String(f.autorizado_por).toUpperCase())}`:''}`
-   : `ACGM #${esc(f.nro_acgm)}`;
+   ? `<span class="pill prealta" style="padding:1px 6px;font-size:10px">Solicitud</span>${obsIcon}${f.autorizado_por?` · Aut: ${esc(String(f.autorizado_por).toUpperCase())}`:''}`
+   : `ACGM #${esc(f.nro_acgm)}${obsIcon}`;
   const rowStyle=cat?` style="background:${esc(cat.color)}18;box-shadow:inset 4px 0 0 ${esc(cat.color)}"`:'';
   return `
    <tr class="item" data-acgm-idx="${idx}"${rowStyle}>
     <td>
      <div>${esc((f.fecha_creacion||'—').slice(0,10))}</div>
-     <div style="font-size:11px;color:var(--muted)">${origenHtml}${a.urgente?' <span class="pill no" style="padding:1px 6px;font-size:10px">⚡ URG</span>':''}</div>
+     <div style="font-size:11px;color:var(--muted)">${origenHtml}</div>
      ${catHtml}
     </td>
     <td>
