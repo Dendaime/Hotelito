@@ -364,6 +364,21 @@ input::placeholder{color:#9aa8ad}
 .acgmDetails[open] summary::after{transform:rotate(180deg)}
 .acgmDetails[open] summary{border-bottom:1px solid var(--line)}
 .acgmDetailsBody{padding:12px 14px}
+.acgmCatFilterWrap{position:relative;display:inline-flex;align-items:center;gap:6px}
+.acgmCatPopover{position:absolute;top:calc(100% + 6px);left:0;z-index:80;min-width:230px;max-width:300px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px #10202626;padding:10px}
+.acgmCatCheck{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer;font-size:12.5px}
+.acgmCatCheck:hover{background:var(--panel2)}
+.acgmCatDot{width:11px;height:11px;border-radius:50%;flex:0 0 11px;display:inline-block}
+.acgmCatPill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:700;border:1px solid transparent;margin-top:3px}
+.acgmCtxMenu{position:fixed;z-index:120;min-width:210px;max-width:260px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 30px #10202633;padding:6px}
+.acgmCtxTitle{font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);padding:5px 8px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.acgmCtxItem{width:100%;background:transparent;border:0;color:var(--text);text-align:left;padding:7px 9px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px}
+.acgmCtxItem:hover{background:var(--panel2)}
+.acgmColorSwatches{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+.acgmSwatch{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.acgmSwatch.active{border-color:var(--text);transform:scale(1.1)}
+.acgmAuditObsBox{margin-top:12px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.acgmAuditObsBox textarea{width:100%;min-height:74px;resize:vertical;margin-top:6px;padding:9px 10px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:inherit;font-size:13px}
 .vestaAuthBar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 16px;margin-bottom:16px;background:var(--panel);border:1px solid var(--line);border-radius:14px}
 .vestaLoginInline{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .vestaLoginInline input{padding:9px 11px;font-size:13px;min-width:160px}
@@ -1269,16 +1284,17 @@ input::placeholder{color:#9aa8ad}
      </div>
 
      <div class="auditFilterBar" id="aAuditChips">
-      <button type="button" class="auditChipBtn active" data-aaudit="all">Todas</button>
-      <button type="button" class="auditChipBtn" data-aaudit="urgente">⚡ Urgentes</button>
-      <button type="button" class="auditChipBtn" data-aaudit="dif_monto">⚠ Dif. facturado vs. a pagar</button>
-      <button type="button" class="auditChipBtn" data-aaudit="sin_pdf">🚨 Sin PDF factura</button>
-      <button type="button" class="auditChipBtn" data-aaudit="con_obs">💬 Con observación</button>
+      <button type="button" class="auditChipBtn active" id="aCatAllBtn">Todas</button>
+      <div class="acgmCatFilterWrap">
+       <button type="button" class="auditChipBtn" id="aCatFilterBtn">🏷️ Categorías ▾</button>
+       <div id="aCatFilterPopover" class="acgmCatPopover" hidden></div>
+      </div>
+      <button type="button" class="auditChipBtn" id="aAddCatBtn" title="Crear o administrar categorías de auditoría" style="font-weight:900;padding:6px 12px">+</button>
      </div>
 
      <div class="meta">
       <span id="aCountLabel">Listo para consultar</span>
-      <span>Tocá una fila para ver detalle completo, historial de estados y descargar archivos</span>
+      <span>Clic simple: detalle y archivos · Clic sostenido (o derecho): categorizar</span>
      </div>
 
      <div class="tablewrap">
@@ -1718,6 +1734,48 @@ input::placeholder{color:#9aa8ad}
   <div id="aDetLinks"></div>
   <div id="aDetHistorialBox" hidden></div>
   <div id="aDetObsBox" class="notice info" style="margin-top:12px" hidden></div>
+  <div class="acgmAuditObsBox" id="aDetAuditObsBox">
+   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+    <strong style="font-size:12.5px">📝 Observación auditoría <span style="font-weight:500;color:var(--muted)">(solo Hotelito)</span></strong>
+    <span id="aDetAuditObsSaved" style="font-size:11.5px;color:var(--accent2);font-weight:700" hidden>✓ Guardado</span>
+   </div>
+   <textarea id="aDetAuditObsInput" placeholder="Escribí una observación de auditoría para este registro…"></textarea>
+   <div style="display:flex;justify-content:flex-end;margin-top:8px">
+    <button type="button" class="sm" id="aDetAuditObsSaveBtn">Guardar observación</button>
+   </div>
+  </div>
+ </div>
+</div>
+
+<div id="acgmCtxMenu" class="acgmCtxMenu" hidden></div>
+
+<div id="acgmCatModal" class="overlay">
+ <div class="dialog" style="max-width:440px">
+  <button class="secondary closeDialog" data-close="acgmCatModal">Cerrar</button>
+  <h2 style="margin:0 0 6px;padding-right:70px">Categorías de auditoría</h2>
+  <p style="margin:0 0 12px;font-size:12.5px;color:var(--muted)">Creá categorías personalizadas con descripción y color para clasificar y filtrar compras.</p>
+  <div style="display:flex;flex-direction:column;gap:8px">
+   <label style="font-size:12px;font-weight:700">Descripción</label>
+   <input id="acgmCatNameInput" placeholder="Ej. Revisado OK, Observar monto, Pendiente remito…">
+   <label style="font-size:12px;font-weight:700;margin-top:4px">Color</label>
+   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <div class="acgmColorSwatches" id="acgmCatSwatches">
+     <button type="button" class="acgmSwatch active" data-color="#0f766e" style="background:#0f766e"></button>
+     <button type="button" class="acgmSwatch" data-color="#2563eb" style="background:#2563eb"></button>
+     <button type="button" class="acgmSwatch" data-color="#16a34a" style="background:#16a34a"></button>
+     <button type="button" class="acgmSwatch" data-color="#d97706" style="background:#d97706"></button>
+     <button type="button" class="acgmSwatch" data-color="#dc2626" style="background:#dc2626"></button>
+     <button type="button" class="acgmSwatch" data-color="#7c3aed" style="background:#7c3aed"></button>
+     <button type="button" class="acgmSwatch" data-color="#db2777" style="background:#db2777"></button>
+     <button type="button" class="acgmSwatch" data-color="#475569" style="background:#475569"></button>
+    </div>
+    <input id="acgmCatColorInput" type="color" value="#0f766e" title="Elegir otro color" style="width:36px;height:32px;padding:2px;border-radius:8px;border:1px solid var(--line);cursor:pointer">
+   </div>
+   <div style="display:flex;justify-content:flex-end;margin-top:6px">
+    <button type="button" id="acgmCatCreateBtn">Crear categoría</button>
+   </div>
+  </div>
+  <div id="acgmCatManageList" style="margin-top:14px;border-top:1px solid var(--line);padding-top:10px"></div>
  </div>
 </div>
 
@@ -9507,21 +9565,176 @@ function analyzeAcgmFactura(f){
  return {difMonto,sinPdf,urgente,conObs};
 }
 
+const ACGM_AUDIT_CATS_KEY='hotelito_acgm_audit_cats';
+const ACGM_AUDIT_META_KEY='hotelito_acgm_audit_meta';
+let acgmAuditCats=[];
+let acgmAuditMeta={};
+let acgmSelectedCatIds=new Set();
+let acgmCurrentDetailKey=null;
+
+function getAcgmRecordKey(f){
+ if(!f)return '';
+ return String(f.id_factura || `${f.nro_factura||''}_${f.fecha_creacion||''}`);
+}
+
+function loadAcgmAuditState(){
+ try{acgmAuditCats=JSON.parse(localStorage.getItem(ACGM_AUDIT_CATS_KEY)||'[]')||[];}catch{acgmAuditCats=[];}
+ try{acgmAuditMeta=JSON.parse(localStorage.getItem(ACGM_AUDIT_META_KEY)||'{}')||{};}catch{acgmAuditMeta={};}
+}
+
+function saveAcgmAuditCats(){
+ try{localStorage.setItem(ACGM_AUDIT_CATS_KEY,JSON.stringify(acgmAuditCats));}catch{}
+}
+
+function saveAcgmAuditMeta(){
+ try{localStorage.setItem(ACGM_AUDIT_META_KEY,JSON.stringify(acgmAuditMeta));}catch{}
+}
+
+function getAcgmCatById(id){
+ return acgmAuditCats.find(c=>c.id===id)||null;
+}
+
+function assignAcgmCategory(f,catId){
+ const key=getAcgmRecordKey(f);
+ if(!key)return;
+ const prev=acgmAuditMeta[key]||{};
+ acgmAuditMeta[key]={...prev,catId:catId||''};
+ if(!acgmAuditMeta[key].catId && !acgmAuditMeta[key].obs)delete acgmAuditMeta[key];
+ saveAcgmAuditMeta();
+ renderAcgmFacturas();
+}
+
+function renderAcgmCatFilterUI(){
+ const hasFilter=acgmSelectedCatIds.size>0;
+ $('aCatAllBtn').classList.toggle('active',!hasFilter);
+ $('aCatFilterBtn').classList.toggle('active',hasFilter);
+ $('aCatFilterBtn').textContent=hasFilter?`🏷️ Categorías (${acgmSelectedCatIds.size}) ▾`:'🏷️ Categorías ▾';
+
+ const pop=$('aCatFilterPopover');
+ const itemsHtml=acgmAuditCats.map(c=>`
+  <label class="acgmCatCheck">
+   <input type="checkbox" value="${esc(c.id)}" ${acgmSelectedCatIds.has(c.id)?'checked':''}>
+   <span class="acgmCatDot" style="background:${esc(c.color)}"></span>
+   <span style="flex:1">${esc(c.name)}</span>
+  </label>
+ `).join('');
+ pop.innerHTML=`
+  ${itemsHtml||'<div style="font-size:12px;color:var(--muted);padding:6px 8px">Aún no creaste categorías. Usá el botón "+".</div>'}
+  <label class="acgmCatCheck" style="border-top:1px solid var(--line);margin-top:4px;padding-top:8px">
+   <input type="checkbox" value="__none__" ${acgmSelectedCatIds.has('__none__')?'checked':''}>
+   <span class="acgmCatDot" style="background:var(--line)"></span>
+   <span style="flex:1;color:var(--muted)">Sin categoría</span>
+  </label>
+  ${hasFilter?'<button type="button" class="secondary sm" id="aCatClearFilterBtn" style="width:100%;margin-top:6px">Limpiar filtro</button>':''}
+ `;
+ pop.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
+  cb.addEventListener('change',()=>{
+   if(cb.checked)acgmSelectedCatIds.add(cb.value);
+   else acgmSelectedCatIds.delete(cb.value);
+   renderAcgmCatFilterUI();
+   renderAcgmFacturas();
+  });
+ });
+ const clearBtn=$('aCatClearFilterBtn');
+ if(clearBtn)clearBtn.addEventListener('click',()=>{
+  acgmSelectedCatIds.clear();
+  renderAcgmCatFilterUI();
+  renderAcgmFacturas();
+ });
+}
+
+function renderAcgmCatManageList(){
+ const box=$('acgmCatManageList');
+ if(!acgmAuditCats.length){
+  box.innerHTML='<div style="font-size:12px;color:var(--muted)">No hay categorías creadas todavía.</div>';
+  return;
+ }
+ box.innerHTML='<div style="font-size:11.5px;font-weight:800;color:var(--muted);margin-bottom:6px">CATEGORÍAS EXISTENTES</div>'+acgmAuditCats.map(c=>`
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)">
+   <div style="display:flex;align-items:center;gap:8px">
+    <span class="acgmCatDot" style="background:${esc(c.color)}"></span>
+    <strong style="font-size:13px">${esc(c.name)}</strong>
+   </div>
+   <button type="button" class="secondary sm" data-del-acat="${esc(c.id)}" style="color:var(--danger)">Eliminar</button>
+  </div>
+ `).join('');
+ box.querySelectorAll('[data-del-acat]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+   const id=btn.dataset.delAcat;
+   acgmAuditCats=acgmAuditCats.filter(c=>c.id!==id);
+   acgmSelectedCatIds.delete(id);
+   Object.keys(acgmAuditMeta).forEach(k=>{
+    if(acgmAuditMeta[k]?.catId===id)acgmAuditMeta[k].catId='';
+   });
+   saveAcgmAuditCats();
+   saveAcgmAuditMeta();
+   renderAcgmCatManageList();
+   renderAcgmCatFilterUI();
+   renderAcgmFacturas();
+  });
+ });
+}
+
+function closeAcgmCtxMenu(){
+ const m=$('acgmCtxMenu');
+ if(m)m.hidden=true;
+}
+
+function openAcgmCtxMenu(f,clientX,clientY){
+ const m=$('acgmCtxMenu');
+ const key=getAcgmRecordKey(f);
+ const curCatId=acgmAuditMeta[key]?.catId||'';
+ m.innerHTML=`
+  <div class="acgmCtxTitle">Categorizar · ${esc(f.nro_factura||'Registro')}</div>
+  ${acgmAuditCats.map(c=>`
+   <button type="button" class="acgmCtxItem" data-ctx-cat="${esc(c.id)}">
+    <span class="acgmCatDot" style="background:${esc(c.color)}"></span>
+    <span style="flex:1">${esc(c.name)}</span>
+    ${curCatId===c.id?'<span style="color:var(--accent2);font-weight:800">✓</span>':''}
+   </button>
+  `).join('')}
+  ${!acgmAuditCats.length?'<div style="font-size:12px;color:var(--muted);padding:6px 8px">Sin categorías creadas</div>':''}
+  ${curCatId?'<button type="button" class="acgmCtxItem" data-ctx-cat="" style="color:var(--danger);border-top:1px solid var(--line);margin-top:4px;padding-top:8px">✕ Quitar categoría</button>':''}
+  <button type="button" class="acgmCtxItem" data-ctx-new="1" style="color:var(--accent);border-top:1px solid var(--line);margin-top:4px;padding-top:8px">+ Nueva categoría…</button>
+ `;
+ m.hidden=false;
+ const rect=m.getBoundingClientRect();
+ const x=Math.min(clientX,window.innerWidth-rect.width-10);
+ const y=Math.min(clientY,window.innerHeight-rect.height-10);
+ m.style.left=Math.max(8,x)+'px';
+ m.style.top=Math.max(8,y)+'px';
+
+ m.querySelectorAll('[data-ctx-cat]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+   assignAcgmCategory(f,btn.dataset.ctxCat);
+   closeAcgmCtxMenu();
+  });
+ });
+ const newBtn=m.querySelector('[data-ctx-new]');
+ if(newBtn)newBtn.addEventListener('click',()=>{
+  closeAcgmCtxMenu();
+  renderAcgmCatManageList();
+  show('acgmCatModal');
+  setTimeout(()=>$('acgmCatNameInput').focus(),50);
+ });
+}
+
 function getFilteredAcgmFacturas(){
  const q=$('aSearch').value.trim().toLocaleLowerCase('es');
  const emp=$('aEmpresa').value;
  return acgmFacturasRaw.filter(f=>{
   if(emp && f.nombre_empresa!==emp)return false;
+  const meta=acgmAuditMeta[getAcgmRecordKey(f)]||{};
+  if(acgmSelectedCatIds.size>0){
+   const catId=meta.catId||'__none__';
+   if(!acgmSelectedCatIds.has(catId))return false;
+  }
   if(q){
-   const hay=[f.nombre_proveedor,f.cuit,f.nro_factura,String(f.nro_acgm||''),String(f.nro_pago||''),f.nombre_empresa,f.nombre_rubro,f.autorizado_por,f.observacion]
+   const catName=getAcgmCatById(meta.catId)?.name||'';
+   const hay=[f.nombre_proveedor,f.cuit,f.nro_factura,String(f.nro_acgm||''),String(f.nro_pago||''),f.nombre_empresa,f.nombre_rubro,f.autorizado_por,f.observacion,catName,meta.obs]
     .some(v=>(v||'').toLocaleLowerCase('es').includes(q));
    if(!hay)return false;
   }
-  const a=analyzeAcgmFactura(f);
-  if(acgmAuditFilter==='urgente')return a.urgente;
-  if(acgmAuditFilter==='dif_monto')return a.difMonto;
-  if(acgmAuditFilter==='sin_pdf')return a.sinPdf;
-  if(acgmAuditFilter==='con_obs')return a.conObs;
   return true;
  });
 }
@@ -9713,6 +9926,9 @@ function renderAcgmFacturas(){
 
  $('aComprasRows').innerHTML=list.map((f,idx)=>{
   const a=analyzeAcgmFactura(f);
+  const meta=acgmAuditMeta[getAcgmRecordKey(f)]||{};
+  const cat=meta.catId?getAcgmCatById(meta.catId):null;
+  const catHtml=cat?`<div><span class="acgmCatPill" style="background:${esc(cat.color)}1a;color:${esc(cat.color)};border-color:${esc(cat.color)}55"><span class="acgmCatDot" style="width:7px;height:7px;flex:0 0 7px;background:${esc(cat.color)}"></span>${esc(cat.name)}</span>${meta.obs?' <span title="Tiene observación de auditoría">📝</span>':''}</div>`:(meta.obs?'<div style="font-size:11px;color:var(--muted);margin-top:2px">📝 Obs. auditoría</div>':'');
   const isSol=(f._tipoOrigen==='solicitud' || f.nro_acgm==null);
   const metodos=Array.isArray(f.tipo_pago)?f.tipo_pago.map(tp=>tp.nombre_metodo_pago).filter(Boolean).join(', '):'—';
   const origenHtml=isSol
@@ -9723,6 +9939,7 @@ function renderAcgmFacturas(){
     <td>
      <div>${esc((f.fecha_creacion||'—').slice(0,10))}</div>
      <div style="font-size:11px;color:var(--muted)">${origenHtml}${a.urgente?' <span class="pill no" style="padding:1px 6px;font-size:10px">⚡ URG</span>':''}</div>
+     ${catHtml}
     </td>
     <td>
      <strong class="code">${esc(f.nro_factura||'S/N')}</strong>
@@ -9748,7 +9965,37 @@ function renderAcgmFacturas(){
  }).join('');
 
  $('aComprasRows').querySelectorAll('[data-acgm-idx]').forEach(tr=>{
-  tr.onclick=()=>openAcgmFacturaDetail(list[Number(tr.dataset.acgmIdx)]);
+  const item=list[Number(tr.dataset.acgmIdx)];
+  let lpTimer=null;
+  let lpTriggered=false;
+  let startX=0, startY=0;
+  tr.addEventListener('pointerdown',e=>{
+   if(e.button && e.button!==0)return;
+   lpTriggered=false;
+   startX=e.clientX; startY=e.clientY;
+   clearTimeout(lpTimer);
+   lpTimer=setTimeout(()=>{
+    lpTriggered=true;
+    openAcgmCtxMenu(item,startX,startY);
+   },450);
+  });
+  tr.addEventListener('pointermove',e=>{
+   if(!lpTimer)return;
+   if(Math.hypot(e.clientX-startX,e.clientY-startY)>10){clearTimeout(lpTimer);lpTimer=null;}
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>{
+   tr.addEventListener(ev,()=>{clearTimeout(lpTimer);lpTimer=null;});
+  });
+  tr.addEventListener('contextmenu',e=>{
+   e.preventDefault();
+   clearTimeout(lpTimer);lpTimer=null;
+   openAcgmCtxMenu(item,e.clientX,e.clientY);
+  });
+  tr.addEventListener('click',()=>{
+   if(lpTriggered){lpTriggered=false;return;}
+   closeAcgmCtxMenu();
+   openAcgmFacturaDetail(item);
+  });
  });
 }
 
@@ -9757,6 +10004,7 @@ function renderAcgmFacturaDetailContent(base,det){
  const prov=det?.proveedor||{};
  const isSol=(f._tipoOrigen==='solicitud' || f.nro_acgm==null);
  const provNombre=prov.nombre||f.nombre_proveedor||'Proveedor';
+ acgmCurrentDetailKey=getAcgmRecordKey(f);
 
  $('aDetTitle').textContent=`Factura ${f.nro_factura||'S/N'} · ${provNombre}`;
  $('aDetMeta').textContent=`${isSol?'Solicitud de pago':'ACGM #'+(f.nro_acgm??'—')} (ID ${f.id_factura??'—'}) · Creada: ${f.fecha_creacion||'—'}${f.fecha_modificacion?` · Modificada: ${f.fecha_modificacion}`:''}`;
@@ -9787,6 +10035,9 @@ function renderAcgmFacturaDetailContent(base,det){
   obsBox.hidden=true;
   obsBox.textContent='';
  }
+
+ $('aDetAuditObsInput').value=acgmAuditMeta[acgmCurrentDetailKey]?.obs||'';
+ $('aDetAuditObsSaved').hidden=true;
 }
 
 async function openAcgmFacturaDetail(f){
@@ -9814,28 +10065,34 @@ function exportAcgmComprasExcel(){
  if(!window.XLSX){alert('No se encontró la librería SheetJS (XLSX).');return;}
  const list=getFilteredAcgmFacturas();
  if(!list.length){alert('No hay facturas en vista para exportar.');return;}
- const rows=list.map(f=>({
-  'Tipo':(f._tipoOrigen==='solicitud'||f.nro_acgm==null)?'Solicitud':'ACGM',
-  'Fecha creación':f.fecha_creacion||'',
-  'N° ACGM':f.nro_acgm??'',
-  'N° Factura':f.nro_factura||'',
-  'Empresa':f.nombre_empresa||'',
-  'Rubro':f.nombre_rubro||'',
-  'Proveedor':f.nombre_proveedor||'',
-  'CUIT':f.cuit||'',
-  'CBU':f.cbu||'',
-  'Autorizado por':f.autorizado_por?String(f.autorizado_por).toUpperCase():'',
-  'Monto facturado':Number(f.monto_facturado||0),
-  'Monto a pagar':Number(f.monto_pagar||0),
-  'Retención':Number(f.monto_retencion||0),
-  'Estado':f.estado||'',
-  'Resultado':f.resultado||'',
-  'Estado pago':f.estado_pago||'',
-  'N° Pago':f.nro_pago??'',
-  'Método pago':Array.isArray(f.tipo_pago)?f.tipo_pago.map(tp=>tp.nombre_metodo_pago).join(', '):'',
-  'Urgente':f.es_urgente?'Sí':'No',
-  'Observación':f.observacion||''
- }));
+ const rows=list.map(f=>{
+  const meta=acgmAuditMeta[getAcgmRecordKey(f)]||{};
+  const catName=meta.catId?(getAcgmCatById(meta.catId)?.name||''):'';
+  return {
+   'Tipo':(f._tipoOrigen==='solicitud'||f.nro_acgm==null)?'Solicitud':'ACGM',
+   'Fecha creación':f.fecha_creacion||'',
+   'N° ACGM':f.nro_acgm??'',
+   'N° Factura':f.nro_factura||'',
+   'Empresa':f.nombre_empresa||'',
+   'Rubro':f.nombre_rubro||'',
+   'Proveedor':f.nombre_proveedor||'',
+   'Categoría auditoría':catName,
+   'Observación auditoría':meta.obs||'',
+   'CUIT':f.cuit||'',
+   'CBU':f.cbu||'',
+   'Autorizado por':f.autorizado_por?String(f.autorizado_por).toUpperCase():'',
+   'Monto facturado':Number(f.monto_facturado||0),
+   'Monto a pagar':Number(f.monto_pagar||0),
+   'Retención':Number(f.monto_retencion||0),
+   'Estado':f.estado||'',
+   'Resultado':f.resultado||'',
+   'Estado pago':f.estado_pago||'',
+   'N° Pago':f.nro_pago??'',
+   'Método pago':Array.isArray(f.tipo_pago)?f.tipo_pago.map(tp=>tp.nombre_metodo_pago).join(', '):'',
+   'Urgente':f.es_urgente?'Sí':'No',
+   'Observación':f.observacion||''
+  };
+ });
  const ws=XLSX.utils.json_to_sheet(rows);
  const wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,ws,'Compras_Administracion');
@@ -9844,6 +10101,8 @@ function exportAcgmComprasExcel(){
 
 function initAcgmComprasView(){
  loadAcgmSession();
+ loadAcgmAuditState();
+ renderAcgmCatFilterUI();
  updateAcgmAuthUI();
  if(!$('aHasta').value){
   const hoy=new Date();
@@ -9874,12 +10133,74 @@ $('aBuscarBtn').addEventListener('click',loadAcgmFacturas);
 $('acgmExportExcelBtn').addEventListener('click',exportAcgmComprasExcel);
 $('aSearch').addEventListener('input',renderAcgmFacturas);
 $('aEmpresa').addEventListener('change',renderAcgmFacturas);
-document.querySelectorAll('#aAuditChips [data-aaudit]').forEach(btn=>{
+
+$('aCatAllBtn').addEventListener('click',()=>{
+ acgmSelectedCatIds.clear();
+ $('aCatFilterPopover').hidden=true;
+ renderAcgmCatFilterUI();
+ renderAcgmFacturas();
+});
+
+$('aCatFilterBtn').addEventListener('click',e=>{
+ e.stopPropagation();
+ const pop=$('aCatFilterPopover');
+ pop.hidden=!pop.hidden;
+ if(!pop.hidden)renderAcgmCatFilterUI();
+});
+
+$('aAddCatBtn').addEventListener('click',()=>{
+ $('aCatFilterPopover').hidden=true;
+ renderAcgmCatManageList();
+ show('acgmCatModal');
+ setTimeout(()=>$('acgmCatNameInput').focus(),50);
+});
+
+document.querySelectorAll('#acgmCatSwatches .acgmSwatch').forEach(btn=>{
  btn.addEventListener('click',()=>{
-  acgmAuditFilter=btn.dataset.aaudit;
-  document.querySelectorAll('#aAuditChips [data-aaudit]').forEach(b=>b.classList.toggle('active',b===btn));
-  renderAcgmFacturas();
+  document.querySelectorAll('#acgmCatSwatches .acgmSwatch').forEach(b=>b.classList.toggle('active',b===btn));
+  $('acgmCatColorInput').value=btn.dataset.color;
  });
+});
+
+$('acgmCatColorInput').addEventListener('input',()=>{
+ document.querySelectorAll('#acgmCatSwatches .acgmSwatch').forEach(b=>b.classList.remove('active'));
+});
+
+$('acgmCatCreateBtn').addEventListener('click',()=>{
+ const name=$('acgmCatNameInput').value.trim();
+ const color=$('acgmCatColorInput').value||'#0f766e';
+ if(!name){$('acgmCatNameInput').focus();return;}
+ acgmAuditCats.push({id:'cat_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6),name,color});
+ saveAcgmAuditCats();
+ $('acgmCatNameInput').value='';
+ renderAcgmCatManageList();
+ renderAcgmCatFilterUI();
+ renderAcgmFacturas();
+});
+
+$('acgmCatNameInput').addEventListener('keydown',e=>{
+ if(e.key==='Enter')$('acgmCatCreateBtn').click();
+});
+
+$('aDetAuditObsSaveBtn').addEventListener('click',()=>{
+ if(!acgmCurrentDetailKey)return;
+ const val=$('aDetAuditObsInput').value.trim();
+ const prev=acgmAuditMeta[acgmCurrentDetailKey]||{};
+ acgmAuditMeta[acgmCurrentDetailKey]={...prev,obs:val};
+ if(!acgmAuditMeta[acgmCurrentDetailKey].catId && !acgmAuditMeta[acgmCurrentDetailKey].obs){
+  delete acgmAuditMeta[acgmCurrentDetailKey];
+ }
+ saveAcgmAuditMeta();
+ $('aDetAuditObsSaved').hidden=false;
+ setTimeout(()=>{if($('aDetAuditObsSaved'))$('aDetAuditObsSaved').hidden=true;},2000);
+ renderAcgmFacturas();
+});
+
+document.addEventListener('click',e=>{
+ const pop=$('aCatFilterPopover');
+ if(pop && !pop.hidden && !e.target.closest('.acgmCatFilterWrap'))pop.hidden=true;
+ const ctx=$('acgmCtxMenu');
+ if(ctx && !ctx.hidden && !e.target.closest('#acgmCtxMenu'))ctx.hidden=true;
 });
 
 function keepAliveExternalSessions(){
