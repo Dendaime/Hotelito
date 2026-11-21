@@ -381,6 +381,9 @@ input::placeholder{color:#9aa8ad}
 .acgmDetailsBody{padding:12px 14px}
 .acgmCatFilterWrap{position:relative;display:inline-flex;align-items:center;gap:6px}
 .acgmCatPopover{position:absolute;top:calc(100% + 6px);right:0;left:auto;z-index:80;min-width:230px;max-width:300px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px #10202626;padding:10px}
+.vColFilterBtn{background:transparent;border:1px solid transparent;border-radius:6px;padding:1px 5px;margin-left:4px;font-size:11px;color:var(--muted);cursor:pointer;line-height:1.2}
+.vColFilterBtn:hover{background:var(--panel2);color:var(--text)}
+.vColFilterBtn.active{background:#e6f2f1;color:var(--accent);border-color:var(--accent);font-weight:800}
 .drawerConnWrap{margin:10px 0;padding-top:10px;border-top:1px solid var(--line);display:grid;gap:6px;flex-shrink:0}
 .drawerConnBox{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
 .drawerConnBox summary{list-style:none;cursor:pointer;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:6px}
@@ -1243,13 +1246,7 @@ input::placeholder{color:#9aa8ad}
      <input id="vFechaFin" type="date" title="Fecha hasta">
      <input id="vSearch" placeholder="Buscar proveedor, N° doc., tipo, estado, categoría u observación…" style="flex:1;min-width:210px">
      <button type="button" id="vBuscarBtn">Consultar</button>
-    </div>
-
-    <div class="auditFilterBar" id="vAuditChips">
-     <button type="button" class="auditChipBtn active" data-vaudit="all">Todos</button>
-     <button type="button" class="auditChipBtn" data-vaudit="desvios">⚠ Solo con desvíos</button>
-     <button type="button" class="auditChipBtn" data-vaudit="sin_comp">🚨 Sin comprobante</button>
-     <button type="button" class="auditChipBtn" data-vaudit="sin_firma">✍ Sin firma</button>
+     <button type="button" class="secondary" id="vExportExcelBtn">↓ Exportar Excel</button>
     </div>
 
     <div class="meta">
@@ -1261,18 +1258,19 @@ input::placeholder{color:#9aa8ad}
      <table>
       <thead>
        <tr>
-        <th>Fecha recep.</th>
-        <th>Documento</th>
-        <th>Proveedor</th>
-        <th>Estado</th>
-        <th>Ítems / Alertas</th>
-        <th>Evidencias</th>
+        <th>Fecha recep. <button type="button" class="vColFilterBtn" data-vcol="fecha" title="Filtrar por fecha">▾</button></th>
+        <th>Documento <button type="button" class="vColFilterBtn" data-vcol="tipo" title="Filtrar por tipo">▾</button></th>
+        <th>Proveedor <button type="button" class="vColFilterBtn" data-vcol="proveedor" title="Filtrar por proveedor">▾</button></th>
+        <th>Estado <button type="button" class="vColFilterBtn" data-vcol="estado" title="Filtrar por estado">▾</button></th>
+        <th>Ítems / Alertas <button type="button" class="vColFilterBtn" data-vcol="alertas" title="Filtrar por alertas">▾</button></th>
+        <th>Evidencias <button type="button" class="vColFilterBtn" data-vcol="evidencias" title="Filtrar por evidencias">▾</button></th>
        </tr>
       </thead>
       <tbody id="vRecepcionesRows"></tbody>
      </table>
      <div class="empty" id="vRecepcionesEmpty" hidden>No se encontraron planillas con los filtros actuales.</div>
     </div>
+    <div id="vColFilterPopover" class="acgmCtxMenu" hidden style="max-height:310px;overflow-y:auto"></div>
    </div>
    </div><!-- /movSubRecepciones -->
   </div><!-- /viewMovimientos -->
@@ -9395,6 +9393,152 @@ async function loadVestaRecepciones(){
  }
 }
 
+const vestaColFilters={
+ fecha:new Set(),
+ tipo:new Set(),
+ proveedor:new Set(),
+ estado:new Set(),
+ alertas:new Set(),
+ evidencias:new Set()
+};
+
+function getVestaColValues(r,col){
+ if(col==='fecha')return [(r.fecha_recepcion||r.fecha_documento||'—').slice(0,10)];
+ if(col==='tipo')return [(r.tipo_ingreso||'Sin tipo').toUpperCase()];
+ if(col==='proveedor')return [r.proveedor_nombre||r.nombre_proveedor||'Sin proveedor'];
+ if(col==='estado')return [r.estado||'Sin estado'];
+ if(col==='alertas'){
+  const a=analyzeVestaRecepcion(r);
+  const out=[];
+  if(a.desvios>0)out.push('Con desvíos');
+  if(a.sinComp)out.push('Sin comprobante');
+  if(a.sinFirma)out.push('Sin firma');
+  if(!out.length)out.push('OK');
+  return out;
+ }
+ if(col==='evidencias'){
+  const out=[];
+  if(r.url_comprobante)out.push('Comprobante');
+  if(r.url_factura_pago)out.push('Factura');
+  if(r.url_autorizacion_dm)out.push('Aut. DM');
+  if(r.url_comprobante_pago)out.push('Pago');
+  if(!out.length)out.push('Sin evidencias');
+  return out;
+ }
+ return [];
+}
+
+function getFilteredVestaRecepciones(){
+ const q=($('vSearch')?.value||'').trim().toLocaleLowerCase('es');
+ return vestaRecepcionesRaw.filter(r=>{
+  const meta=(typeof acgmAuditMeta==='object' && acgmAuditMeta[getVestaRecordKey(r)])||{};
+  if(vestaSelectedCatIds.size>0){
+   const catId=meta.catId||'__none__';
+   if(!vestaSelectedCatIds.has(catId))return false;
+  }
+  for(const col of Object.keys(vestaColFilters)){
+   const set=vestaColFilters[col];
+   if(set.size>0){
+    const vals=getVestaColValues(r,col);
+    if(!vals.some(v=>set.has(v)))return false;
+   }
+  }
+  if(q){
+   const catName=getVestaCatById(meta.catId)?.name||'';
+   const itemNames=Array.isArray(r.items)?r.items.map(it=>it.nombre_insumo||it.insumo||'').join(' '):'';
+   const hay=[
+    r.proveedor_nombre,r.nombre_proveedor,r.numero_documento,r.tipo_ingreso,
+    r.estado,r.fecha_recepcion,r.fecha_documento,r.aclaracion_entrega,
+    r.aclaracion_recepcion,itemNames,catName,meta.obs
+   ].some(v=>(v||'').toLocaleLowerCase('es').includes(q));
+   if(!hay)return false;
+  }
+  return true;
+ });
+}
+
+function updateVestaColFilterBadges(){
+ document.querySelectorAll('.vColFilterBtn[data-vcol]').forEach(btn=>{
+  const col=btn.dataset.vcol;
+  const cnt=vestaColFilters[col]?.size||0;
+  btn.classList.toggle('active',cnt>0);
+  btn.textContent=cnt>0?`▾(${cnt})`:'▾';
+ });
+}
+
+function openVestaColFilter(col,btnEl){
+ const pop=$('vColFilterPopover');
+ if(!pop)return;
+ const set=vestaColFilters[col];
+ const allVals=[...new Set(vestaRecepcionesRaw.flatMap(r=>getVestaColValues(r,col)))].sort((a,b)=>a.localeCompare(b,'es'));
+ const titles={fecha:'Fecha recep.',tipo:'Tipo doc.',proveedor:'Proveedor',estado:'Estado',alertas:'Alertas',evidencias:'Evidencias'};
+ pop.innerHTML=`
+  <div class="acgmCtxTitle">Filtrar · ${esc(titles[col]||col)}</div>
+  ${allVals.map(v=>`
+   <label class="acgmCatCheck">
+    <input type="checkbox" value="${esc(v)}" ${set.has(v)?'checked':''}>
+    <span style="flex:1">${esc(v)}</span>
+   </label>
+  `).join('')||'<div style="font-size:12px;color:var(--muted);padding:6px 8px">Sin valores</div>'}
+  ${set.size>0?'<button type="button" class="secondary sm" id="vColClearBtn" style="width:100%;margin-top:6px">Limpiar filtro</button>':''}
+ `;
+ pop.hidden=false;
+ const br=btnEl.getBoundingClientRect();
+ const pr=pop.getBoundingClientRect();
+ const x=Math.min(br.left,window.innerWidth-pr.width-10);
+ const y=Math.min(br.bottom+4,window.innerHeight-pr.height-10);
+ pop.style.left=Math.max(8,x)+'px';
+ pop.style.top=Math.max(8,y)+'px';
+
+ pop.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
+  cb.addEventListener('change',()=>{
+   if(cb.checked)set.add(cb.value);
+   else set.delete(cb.value);
+   updateVestaColFilterBadges();
+   renderVestaRecepciones();
+  });
+ });
+ const clr=$('vColClearBtn');
+ if(clr)clr.addEventListener('click',()=>{
+  set.clear();
+  updateVestaColFilterBadges();
+  renderVestaRecepciones();
+  pop.hidden=true;
+ });
+}
+
+function exportVestaLocalExcel(){
+ if(!window.XLSX){alert('No se encontró la librería SheetJS (XLSX).');return;}
+ const list=getFilteredVestaRecepciones();
+ if(!list.length){alert('No hay planillas en vista para exportar.');return;}
+ const rows=list.map(r=>{
+  const a=analyzeVestaRecepcion(r);
+  const meta=(typeof acgmAuditMeta==='object' && acgmAuditMeta[getVestaRecordKey(r)])||{};
+  const catName=meta.catId?(getVestaCatById(meta.catId)?.name||''):'';
+  return {
+   'Fecha recepción':(r.fecha_recepcion||r.fecha_documento||'').slice(0,10),
+   'Tipo':r.tipo_ingreso||'',
+   'N° Documento':r.numero_documento||'',
+   'Proveedor':r.proveedor_nombre||r.nombre_proveedor||'',
+   'Categoría auditoría':catName,
+   'Observación auditoría':meta.obs||'',
+   'Estado':r.estado||'',
+   'Ítems':a.itemsCount,
+   'Desvíos':a.desvios,
+   'Comprobante':r.url_comprobante?'Sí':'No',
+   'Factura pago':r.url_factura_pago?'Sí':'No',
+   'Aut. DM':r.url_autorizacion_dm?'Sí':'No',
+   'Comp. pago':r.url_comprobante_pago?'Sí':'No',
+   'Firma entrega':r.firma_entrega?'Sí':'No',
+   'Firma recepción':r.firma_recepcion?'Sí':'No'
+  };
+ });
+ const ws=XLSX.utils.json_to_sheet(rows);
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,ws,'Control_Movimientos');
+ XLSX.writeFile(wb,`Vesta_Movimientos_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
 function renderVestaRecepciones(){
  let cDesv=0, cSinComp=0, cSinFirma=0;
  vestaRecepcionesRaw.forEach(r=>{
@@ -9408,29 +9552,8 @@ function renderVestaRecepciones(){
  $('vMetSinComp').textContent=cSinComp;
  $('vMetSinFirma').textContent=cSinFirma;
 
- const q=($('vSearch')?.value||'').trim().toLocaleLowerCase('es');
- const list=vestaRecepcionesRaw.filter(r=>{
-  const meta=(typeof acgmAuditMeta==='object' && acgmAuditMeta[getVestaRecordKey(r)])||{};
-  if(vestaSelectedCatIds.size>0){
-   const catId=meta.catId||'__none__';
-   if(!vestaSelectedCatIds.has(catId))return false;
-  }
-  if(q){
-   const catName=getVestaCatById(meta.catId)?.name||'';
-   const itemNames=Array.isArray(r.items)?r.items.map(it=>it.nombre_insumo||it.insumo||'').join(' '):'';
-   const hay=[
-    r.proveedor_nombre,r.nombre_proveedor,r.numero_documento,r.tipo_ingreso,
-    r.estado,r.fecha_recepcion,r.fecha_documento,r.aclaracion_entrega,
-    r.aclaracion_recepcion,itemNames,catName,meta.obs
-   ].some(v=>(v||'').toLocaleLowerCase('es').includes(q));
-   if(!hay)return false;
-  }
-  const a=analyzeVestaRecepcion(r);
-  if(vestaAuditFilter==='desvios')return a.desvios>0;
-  if(vestaAuditFilter==='sin_comp')return a.sinComp;
-  if(vestaAuditFilter==='sin_firma')return a.sinFirma;
-  return true;
- });
+ const list=getFilteredVestaRecepciones();
+ updateVestaColFilterBadges();
 
  $('vCountLabel').textContent=`${list.length} planilla(s) en vista (de ${vestaRecepcionesRaw.length} cargadas)`;
  $('vRecepcionesEmpty').hidden=list.length!==0;
@@ -10764,6 +10887,13 @@ $('aDetAuditObsSaveBtn').addEventListener('click',()=>{
 });
 
 if($('vSearch'))$('vSearch').addEventListener('input',renderVestaRecepciones);
+if($('vExportExcelBtn'))$('vExportExcelBtn').addEventListener('click',exportVestaLocalExcel);
+document.querySelectorAll('.vColFilterBtn[data-vcol]').forEach(btn=>{
+ btn.addEventListener('click',e=>{
+  e.stopPropagation();
+  openVestaColFilter(btn.dataset.vcol,btn);
+ });
+});
 
 if($('vCatAllBtn'))$('vCatAllBtn').addEventListener('click',()=>{
  vestaSelectedCatIds.clear();
@@ -10809,6 +10939,8 @@ document.addEventListener('click',e=>{
  if(pop && !pop.hidden && !e.target.closest('.acgmCatFilterWrap'))pop.hidden=true;
  const vpop=$('vCatFilterPopover');
  if(vpop && !vpop.hidden && !e.target.closest('.acgmCatFilterWrap'))vpop.hidden=true;
+ const cpop=$('vColFilterPopover');
+ if(cpop && !cpop.hidden && !e.target.closest('#vColFilterPopover') && !e.target.closest('.vColFilterBtn'))cpop.hidden=true;
  const ctx=$('acgmCtxMenu');
  if(ctx && !ctx.hidden && (Date.now()-acgmCtxJustOpenedAt)>350 && !e.target.closest('#acgmCtxMenu'))ctx.hidden=true;
 });
