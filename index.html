@@ -1225,6 +1225,8 @@ input::placeholder{color:#9aa8ad}
    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px">
     <div class="subNavTabs" style="margin-bottom:0">
      <button type="button" class="subNavTab active" data-mov-sub="recepciones">📥 Planillas de recepción</button>
+     <button type="button" class="subNavTab" data-mov-sub="preelab">🍳 Mov. Pre-Elaborados</button>
+     <button type="button" class="subNavTab" data-mov-sub="produccion">🏭 Mov. Producción</button>
     </div>
     <div class="auditFilterBar" id="vCatBar" style="margin:0">
      <button type="button" class="auditChipBtn active" id="vCatAllBtn">Todas</button>
@@ -1284,6 +1286,86 @@ input::placeholder{color:#9aa8ad}
     </div>
    </div>
    </div><!-- /movSubRecepciones -->
+
+   <!-- SUB-VISTA B: MOVIMIENTOS DE PRE-ELABORADOS (VESTA) -->
+   <div id="movSubPreelab" hidden>
+    <div id="vpeErrorBox" class="notice warn" hidden></div>
+    <div id="vpeArea">
+     <section class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+      <div class="metric"><div class="k">Movimientos en vista</div><div class="v" id="vpeMetTotal">0</div></div>
+      <div class="metric"><div class="k">Entradas</div><div class="v teal" id="vpeMetEntradas">0</div></div>
+      <div class="metric"><div class="k">Salidas</div><div class="v" id="vpeMetSalidas" style="color:var(--danger)">0</div></div>
+      <div class="metric"><div class="k">Decomisos</div><div class="v" id="vpeMetDecomisos" style="color:var(--warn)">0</div></div>
+     </section>
+     <div class="toolbar">
+      <input id="vpeDesde" type="date" title="Fecha desde">
+      <input id="vpeHasta" type="date" title="Fecha hasta">
+      <input id="vpeSearch" placeholder="Buscar pre-elaborado, código, stock, tipo, usuario, categoría u observación…" style="flex:1;min-width:210px">
+      <button type="button" id="vpeBuscarBtn">Consultar</button>
+      <button type="button" class="secondary" id="vpeExportExcelBtn">↓ Exportar Excel</button>
+     </div>
+     <div class="meta">
+      <span id="vpeCountLabel">Listo para consultar</span>
+      <span>Clic simple: detalle y observación · Clic sostenido (o derecho): categorizar</span>
+     </div>
+     <div class="tablewrap">
+      <table>
+       <thead>
+        <tr>
+         <th>Fecha / Stock <button type="button" class="vColFilterBtn" data-vpecol="fecha" title="Filtrar">▾</button></th>
+         <th>Pre-Elaborado <button type="button" class="vColFilterBtn" data-vpecol="nombre" title="Filtrar">▾</button></th>
+         <th>Tipo Mov. <button type="button" class="vColFilterBtn" data-vpecol="tipo" title="Filtrar">▾</button></th>
+         <th>Cant. <button type="button" class="vColFilterBtn" data-vpecol="cantidad" title="Filtrar">▾</button></th>
+         <th>Stock Ant. → Act.</th>
+         <th>Usuario / Obs. <button type="button" class="vColFilterBtn" data-vpecol="usuario" title="Filtrar">▾</button></th>
+        </tr>
+       </thead>
+       <tbody id="vpeRows"></tbody>
+      </table>
+      <div class="empty" id="vpeEmpty" hidden>No se encontraron movimientos de pre-elaborados con los filtros actuales.</div>
+     </div>
+    </div>
+   </div><!-- /movSubPreelab -->
+
+   <!-- SUB-VISTA C: MOVIMIENTOS DE PRODUCCIÓN (VESTA) -->
+   <div id="movSubProduccion" hidden>
+    <div id="vprErrorBox" class="notice warn" hidden></div>
+    <div id="vprArea">
+     <section class="metrics" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+      <div class="metric"><div class="k">Producciones en vista</div><div class="v" id="vprMetTotal">0</div></div>
+      <div class="metric"><div class="k">Con desvíos de insumos</div><div class="v" id="vprMetDesvios" style="color:var(--danger)">0</div></div>
+      <div class="metric"><div class="k">Unidades producidas</div><div class="v teal" id="vprMetUnidades">0</div></div>
+      <div class="metric"><div class="k">Responsables</div><div class="v" id="vprMetResp">0</div></div>
+     </section>
+     <div class="toolbar">
+      <input id="vprDesde" type="date" title="Fecha desde">
+      <input id="vprHasta" type="date" title="Fecha hasta">
+      <input id="vprSearch" placeholder="Buscar requisición, pre-elaborado, responsable, insumo, categoría u observación…" style="flex:1;min-width:210px">
+      <button type="button" id="vprBuscarBtn">Consultar</button>
+      <button type="button" class="secondary" id="vprExportExcelBtn">↓ Exportar Excel</button>
+     </div>
+     <div class="meta">
+      <span id="vprCountLabel">Listo para consultar</span>
+      <span>Clic simple: detalle e insumos consumidos · Clic sostenido (o derecho): categorizar</span>
+     </div>
+     <div class="tablewrap">
+      <table>
+       <thead>
+        <tr>
+         <th>Fecha / Req. <button type="button" class="vColFilterBtn" data-vprcol="fecha" title="Filtrar">▾</button></th>
+         <th>Pre-Elaborado <button type="button" class="vColFilterBtn" data-vprcol="nombre" title="Filtrar">▾</button></th>
+         <th>Responsable <button type="button" class="vColFilterBtn" data-vprcol="responsable" title="Filtrar">▾</button></th>
+         <th>Cant. Est. / Util.</th>
+         <th>Insumos <button type="button" class="vColFilterBtn" data-vprcol="insumos" title="Filtrar">▾</button></th>
+         <th>Observación</th>
+        </tr>
+       </thead>
+       <tbody id="vprRows"></tbody>
+      </table>
+      <div class="empty" id="vprEmpty" hidden>No se encontraron movimientos de producción con los filtros actuales.</div>
+     </div>
+    </div>
+   </div><!-- /movSubProduccion -->
   </div><!-- /viewMovimientos -->
 
   <!-- VISTA 6: COMPRAS Y GASTOS ADM. (PAGO A PROVEEDORES / ACGM) -->
@@ -1761,6 +1843,38 @@ input::placeholder{color:#9aa8ad}
    <textarea id="vDetAuditObsInput" placeholder="Escribí una observación de auditoría para esta planilla…"></textarea>
    <div style="display:flex;justify-content:flex-end;margin-top:8px">
     <button type="button" class="sm" id="vDetAuditObsSaveBtn">Guardar observación</button>
+   </div>
+  </div>
+ </div>
+</div>
+
+<div id="vestaMovDetailModal" class="overlay">
+ <div class="dialog wide" style="width:min(860px,100%)">
+  <button class="secondary closeDialog" data-close="vestaMovDetailModal">Cerrar</button>
+  <h2 id="vmDetTitle" style="margin:0 0 4px;padding-right:70px">Detalle de movimiento</h2>
+  <p id="vmDetMeta" style="margin:0 0 12px;font-size:12px;color:var(--muted)"></p>
+  <div id="vmDetObsVesta" class="notice info" style="margin-bottom:10px" hidden></div>
+  <div id="vmDetInsumosWrap" class="tablewrap" style="max-height:42vh;margin-top:10px" hidden>
+   <table style="min-width:520px">
+    <thead>
+     <tr>
+      <th>Insumo</th>
+      <th>Unidad</th>
+      <th class="num">Cant. Estimada</th>
+      <th class="num">Cant. Utilizada</th>
+     </tr>
+    </thead>
+    <tbody id="vmDetInsumosRows"></tbody>
+   </table>
+  </div>
+  <div class="acgmAuditObsBox" id="vmDetAuditObsBox">
+   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+    <strong style="font-size:12.5px">📝 Observación auditoría <span style="font-weight:500;color:var(--muted)">(solo Hotelito)</span></strong>
+    <span id="vmDetAuditObsSaved" style="font-size:11.5px;color:var(--accent2);font-weight:700" hidden>✓ Guardado</span>
+   </div>
+   <textarea id="vmDetAuditObsInput" placeholder="Escribí una observación de auditoría para este movimiento…"></textarea>
+   <div style="display:flex;justify-content:flex-end;margin-top:8px">
+    <button type="button" class="sm" id="vmDetAuditObsSaveBtn">Guardar observación</button>
    </div>
   </div>
  </div>
@@ -9898,6 +10012,10 @@ function switchMovSubTab(sub){
   b.classList.toggle('active',b.dataset.movSub===sub);
  });
  if($('movSubRecepciones'))$('movSubRecepciones').hidden=sub!=='recepciones';
+ if($('movSubPreelab'))$('movSubPreelab').hidden=sub!=='preelab';
+ if($('movSubProduccion'))$('movSubProduccion').hidden=sub!=='produccion';
+ if(sub==='preelab' && typeof initVestaPreelabSub==='function')initVestaPreelabSub();
+ if(sub==='produccion' && typeof initVestaProduccionSub==='function')initVestaProduccionSub();
 }
 
 document.querySelectorAll('#viewMovimientos [data-mov-sub]').forEach(btn=>{
@@ -11093,6 +11211,522 @@ setInterval(keepAliveExternalSessions,6*60*1000);
 document.addEventListener('visibilitychange',()=>{
  if(!document.hidden)keepAliveExternalSessions();
 });
+
+/* =========================================================
+   VESTA · MOVIMIENTOS DE PRE-ELABORADOS Y PRODUCCIÓN
+   ========================================================= */
+const VESTA_PRE_CACHE_KEY='hotelito_vesta_pre_cache';
+const VESTA_PROD_CACHE_KEY='hotelito_vesta_prod_cache';
+let vestaPreRaw=[];
+let vestaProdRaw=[];
+let vmCurrentDetail={kind:null,key:null,row:null};
+
+const vpeColFilters={fecha:new Set(),nombre:new Set(),tipo:new Set(),cantidad:new Set(),usuario:new Set()};
+const vprColFilters={fecha:new Set(),nombre:new Set(),responsable:new Set(),insumos:new Set()};
+
+function getVpeKey(r){return r?'vesta_pre:'+String(r.id??`${r.codigo||''}_${r.fecha||''}`):'';}
+function getVprKey(r){return r?'vesta_prod:'+String(r.id_produccion_preelaborado??`${r.num_requisicion||''}_${r.fecha_produccion||''}`):'';}
+
+function saveVestaSubCache(storageKey,rows){
+ if(!Array.isArray(rows)||!rows.length)return;
+ try{localStorage.setItem(storageKey,JSON.stringify({savedAt:new Date().toISOString(),rows}));}catch{}
+}
+function loadVestaSubCache(storageKey){
+ try{
+  const raw=localStorage.getItem(storageKey);
+  if(!raw)return {savedAt:null,rows:[]};
+  const p=JSON.parse(raw);
+  return {savedAt:p?.savedAt||null,rows:Array.isArray(p?.rows)?p.rows:[]};
+ }catch{return {savedAt:null,rows:[]};}
+}
+
+function getOfflineSubRows(storageKey,prefix,keyFn,dateField){
+ const byKey=new Map();
+ const cached=loadVestaSubCache(storageKey);
+ cached.rows.forEach(r=>{const k=keyFn(r);if(k)byKey.set(k,r);});
+ if(typeof acgmAuditMeta==='object' && acgmAuditMeta){
+  Object.entries(acgmAuditMeta)
+   .filter(([k,m])=>k.startsWith(prefix) && m && (m.catId || (m.obs && m.obs.trim())))
+   .forEach(([k,m])=>{if(!byKey.has(k) && m.snapshot)byKey.set(k,m.snapshot);});
+ }
+ return [...byKey.values()].sort((a,b)=>String(b[dateField]||'').localeCompare(String(a[dateField]||'')));
+}
+
+function assignVestaSubCategory(kind,r,catId){
+ const key=kind==='pre'?getVpeKey(r):getVprKey(r);
+ if(!key)return;
+ const prev=acgmAuditMeta[key]||{};
+ acgmAuditMeta[key]={...prev,catId:catId||'',snapshot:r||prev.snapshot||null};
+ if(!acgmAuditMeta[key].catId && !acgmAuditMeta[key].obs)delete acgmAuditMeta[key];
+ saveAcgmAuditMetaLocal();
+ syncAcgmRecordMetaToServer(key);
+ if(kind==='pre')renderVestaPreelab();
+ else renderVestaProduccion();
+}
+
+function openVestaSubCtxMenu(kind,r,clientX,clientY){
+ acgmCtxJustOpenedAt=Date.now();
+ const m=$('acgmCtxMenu');
+ const key=kind==='pre'?getVpeKey(r):getVprKey(r);
+ const curCatId=acgmAuditMeta[key]?.catId||'';
+ const title=kind==='pre'?(r.codigo||r.nombre||'Pre-Elaborado'):(r.num_requisicion||r.nombre||'Producción');
+ m.innerHTML=`
+  <div class="acgmCtxTitle">Categorizar · ${esc(title)}</div>
+  ${vestaAuditCats.map(c=>`
+   <button type="button" class="acgmCtxItem" data-ctx-cat="${esc(c.id)}">
+    <span class="acgmCatDot" style="background:${esc(c.color)}"></span>
+    <span style="flex:1">${esc(c.name)}</span>
+    ${curCatId===c.id?'<span style="color:var(--accent2);font-weight:800">✓</span>':''}
+   </button>
+  `).join('')}
+  ${!vestaAuditCats.length?'<div style="font-size:12px;color:var(--muted);padding:6px 8px">Sin categorías creadas</div>':''}
+  ${curCatId?'<button type="button" class="acgmCtxItem" data-ctx-cat="" style="color:var(--danger);border-top:1px solid var(--line);margin-top:4px;padding-top:8px">✕ Quitar categoría</button>':''}
+  <button type="button" class="acgmCtxItem" data-ctx-new="1" style="color:var(--accent);border-top:1px solid var(--line);margin-top:4px;padding-top:8px">+ Nueva categoría…</button>
+ `;
+ m.hidden=false;
+ const rect=m.getBoundingClientRect();
+ m.style.left=Math.max(8,Math.min(clientX,window.innerWidth-rect.width-10))+'px';
+ m.style.top=Math.max(8,Math.min(clientY,window.innerHeight-rect.height-10))+'px';
+ m.querySelectorAll('[data-ctx-cat]').forEach(btn=>{
+  btn.addEventListener('click',()=>{assignVestaSubCategory(kind,r,btn.dataset.ctxCat);closeAcgmCtxMenu();});
+ });
+ const newBtn=m.querySelector('[data-ctx-new]');
+ if(newBtn)newBtn.addEventListener('click',()=>{
+  closeAcgmCtxMenu();
+  catModalScope='vesta';
+  renderAcgmCatManageList();
+  show('acgmCatModal');
+  setTimeout(()=>$('acgmCatNameInput').focus(),50);
+ });
+}
+
+function attachLongPressRow(tr,onCtx,onClick){
+ let lpTimer=null,lpTriggered=false,sx=0,sy=0;
+ tr.addEventListener('pointerdown',e=>{
+  if(e.button && e.button!==0)return;
+  lpTriggered=false;sx=e.clientX;sy=e.clientY;
+  clearTimeout(lpTimer);
+  lpTimer=setTimeout(()=>{lpTriggered=true;onCtx(sx,sy);},450);
+ });
+ tr.addEventListener('pointermove',e=>{
+  if(!lpTimer)return;
+  if(Math.hypot(e.clientX-sx,e.clientY-sy)>10){clearTimeout(lpTimer);lpTimer=null;}
+ });
+ ['pointerup','pointercancel','pointerleave'].forEach(ev=>tr.addEventListener(ev,()=>{clearTimeout(lpTimer);lpTimer=null;}));
+ tr.addEventListener('contextmenu',e=>{e.preventDefault();clearTimeout(lpTimer);lpTimer=null;onCtx(e.clientX,e.clientY);});
+ tr.addEventListener('click',e=>{
+  if(lpTriggered){e.stopPropagation();lpTriggered=false;return;}
+  closeAcgmCtxMenu();
+  onClick();
+ });
+}
+
+function openVestaMovDetail(kind,r){
+ if(!r)return;
+ const key=kind==='pre'?getVpeKey(r):getVprKey(r);
+ vmCurrentDetail={kind,key,row:r};
+ if(kind==='pre'){
+  const isEnt=String(r.tipo||'').toUpperCase()==='ENTRADA';
+  $('vmDetTitle').textContent=`${r.codigo||''} · ${r.nombre||'Pre-Elaborado'}`;
+  $('vmDetMeta').textContent=`Fecha: ${formatAcgmDateTime(r.fecha)} · Stock: ${r.codigo_stock||'—'} · ${r.tipo||'—'} (${r.tipo_movimiento||'—'}${r.tipo_decomiso?` / ${r.tipo_decomiso}`:''}) · Cant.: ${isEnt?'+':'-'}${r.cantidad??0} (${r.stock_anterior??0} → ${r.stock_actual??0}) · Usuario: ${r.usuario||'—'}${r.responsable?` · Resp.: ${r.responsable}`:''}`;
+  if(r.observacion){$('vmDetObsVesta').hidden=false;$('vmDetObsVesta').innerHTML=`<strong>Observación Vesta:</strong> ${esc(r.observacion)}`;}
+  else{$('vmDetObsVesta').hidden=true;}
+  $('vmDetInsumosWrap').hidden=true;
+ }else{
+  $('vmDetTitle').textContent=`${r.num_requisicion||r.codigo||'Producción'} · ${r.nombre||'Pre-Elaborado'}`;
+  $('vmDetMeta').textContent=`Fecha: ${formatAcgmDateTime(r.fecha_produccion)} · Código: ${r.codigo||'—'} · Responsable: ${r.nombre_responsable||'—'} · Usuario: ${r.nombre_usuario||'—'} · Cant. Est.: ${r.cantidad_estimada??0} / Util.: ${r.cantidad_utilizada??0}`;
+  if(r.observacion){$('vmDetObsVesta').hidden=false;$('vmDetObsVesta').innerHTML=`<strong>Observación Vesta:</strong> ${esc(r.observacion)}`;}
+  else{$('vmDetObsVesta').hidden=true;}
+  const ins=Array.isArray(r.insumos)?r.insumos:[];
+  $('vmDetInsumosWrap').hidden=false;
+  $('vmDetInsumosRows').innerHTML=ins.length
+   ? ins.map(it=>{
+      const diff=Math.abs(Number(it.cantidad_estimada||0)-Number(it.cantidad_utilizada||0))>0.0001;
+      return `<tr>
+       <td><strong>${esc(it.nombre_insumo||'—')}</strong></td>
+       <td>${esc(it.nombre_unidad_medida||'—')}</td>
+       <td class="num">${diff?`<span class="qtyOld">${formatQty(it.cantidad_estimada)}</span>`:formatQty(it.cantidad_estimada)}</td>
+       <td class="num ${diff?'qtyDiff':''}">${formatQty(it.cantidad_utilizada)}</td>
+      </tr>`;
+     }).join('')
+   : '<tr><td colspan="4" style="text-align:center;color:var(--muted)">Sin insumos detallados</td></tr>';
+ }
+ $('vmDetAuditObsInput').value=acgmAuditMeta[key]?.obs||'';
+ $('vmDetAuditObsSaved').hidden=true;
+ show('vestaMovDetailModal');
+}
+
+// --- PRE-ELABORADOS ---
+function getVpeColValues(r,col){
+ if(col==='fecha')return [(r.fecha||'—').slice(0,10)];
+ if(col==='nombre')return [`${r.codigo||''} · ${r.nombre||'—'}`];
+ if(col==='tipo')return [`${r.tipo||'—'} (${r.tipo_movimiento||'—'})`];
+ if(col==='cantidad')return [String(r.cantidad??0)];
+ if(col==='usuario')return [r.responsable||r.usuario||'Sin usuario'];
+ return [];
+}
+
+function getFilteredVestaPreelab(){
+ const q=($('vpeSearch')?.value||'').trim().toLocaleLowerCase('es');
+ const d1=$('vpeDesde')?.value||'';
+ const d2=$('vpeHasta')?.value||'';
+ return vestaPreRaw.filter(r=>{
+  const fday=String(r.fecha||'').slice(0,10);
+  if(d1 && fday && fday<d1)return false;
+  if(d2 && fday && fday>d2)return false;
+  const meta=acgmAuditMeta[getVpeKey(r)]||{};
+  if(vestaSelectedCatIds.size>0){
+   if(!vestaSelectedCatIds.has(meta.catId||'__none__'))return false;
+  }
+  for(const col of Object.keys(vpeColFilters)){
+   if(vpeColFilters[col].size>0 && !getVpeColValues(r,col).some(v=>vpeColFilters[col].has(v)))return false;
+  }
+  if(q){
+   const catName=getVestaCatById(meta.catId)?.name||'';
+   const hay=[r.codigo,r.nombre,r.codigo_stock,r.tipo,r.tipo_movimiento,r.tipo_decomiso,r.observacion,r.usuario,r.responsable,catName,meta.obs]
+    .some(v=>(v||'').toLocaleLowerCase('es').includes(q));
+   if(!hay)return false;
+  }
+  return true;
+ });
+}
+
+function renderVestaPreelab(){
+ const list=getFilteredVestaPreelab();
+ let cEnt=0,cSal=0,cDec=0;
+ list.forEach(r=>{
+  if(String(r.tipo||'').toUpperCase()==='ENTRADA')cEnt++; else cSal++;
+  if(String(r.tipo_movimiento||'').toLowerCase()==='decomiso')cDec++;
+ });
+ $('vpeMetTotal').textContent=list.length;
+ $('vpeMetEntradas').textContent=cEnt;
+ $('vpeMetSalidas').textContent=cSal;
+ $('vpeMetDecomisos').textContent=cDec;
+ $('vpeCountLabel').textContent=`${list.length} movimiento(s) en vista (de ${vestaPreRaw.length} cargados)`;
+ $('vpeEmpty').hidden=list.length!==0;
+
+ document.querySelectorAll('.vColFilterBtn[data-vpecol]').forEach(btn=>{
+  const cnt=vpeColFilters[btn.dataset.vpecol]?.size||0;
+  btn.classList.toggle('active',cnt>0);
+  btn.textContent=cnt>0?`▾(${cnt})`:'▾';
+ });
+
+ $('vpeRows').innerHTML=list.map((r,idx)=>{
+  const meta=acgmAuditMeta[getVpeKey(r)]||{};
+  const cat=meta.catId?getVestaCatById(meta.catId):null;
+  const catHtml=cat?`<div><span class="acgmCatPill" style="background:${esc(cat.color)}1a;color:${esc(cat.color)};border-color:${esc(cat.color)}55"><span class="acgmCatDot" style="width:7px;height:7px;flex:0 0 7px;background:${esc(cat.color)}"></span>${esc(cat.name)}</span></div>`:'';
+  const obsIcon=meta.obs?' <span title="Tiene observación de auditoría">📝</span>':'';
+  const rowStyle=cat?` style="background:${esc(cat.color)}18;box-shadow:inset 4px 0 0 ${esc(cat.color)}"`:'';
+  const isEnt=String(r.tipo||'').toUpperCase()==='ENTRADA';
+  return `
+   <tr class="item" data-vpe-idx="${idx}"${rowStyle}>
+    <td>
+     <div>${esc(formatAcgmDateTime(r.fecha))}</div>
+     <div style="font-size:11px;color:var(--muted)">${esc(r.codigo_stock||'—')}</div>
+     ${catHtml}
+    </td>
+    <td>
+     <strong class="code">${esc(r.codigo||'—')}</strong>${obsIcon}
+     <div style="font-size:12px;font-weight:700">${esc(r.nombre||'—')}</div>
+    </td>
+    <td>
+     <span class="pill ${isEnt?'':'no'}">${esc(r.tipo||'—')}</span>
+     <div style="font-size:11px;color:var(--muted);margin-top:2px;text-transform:capitalize">${esc(r.tipo_movimiento||'—')}${r.tipo_decomiso?` · ${esc(r.tipo_decomiso)}`:''}</div>
+    </td>
+    <td class="num" style="font-weight:800;color:${isEnt?'var(--accent2)':'var(--danger)'}">${isEnt?'+':'-'}${esc(String(r.cantidad??0))}</td>
+    <td class="num">${esc(String(r.stock_anterior??0))} → <strong>${esc(String(r.stock_actual??0))}</strong></td>
+    <td>
+     <div style="font-size:12px;font-weight:600">${esc(r.responsable||r.usuario||'—')}</div>
+     <div style="font-size:11px;color:var(--muted)">${esc(r.observacion||'—')}</div>
+    </td>
+   </tr>
+  `;
+ }).join('');
+
+ $('vpeRows').querySelectorAll('[data-vpe-idx]').forEach(tr=>{
+  const item=list[Number(tr.dataset.vpeIdx)];
+  attachLongPressRow(tr,(x,y)=>openVestaSubCtxMenu('pre',item,x,y),()=>openVestaMovDetail('pre',item));
+ });
+}
+
+async function loadVestaPreelab(){
+ if(!vestaSession?.accessToken){
+  vestaPreRaw=getOfflineSubRows(VESTA_PRE_CACHE_KEY,'vesta_pre:',getVpeKey,'fecha');
+  renderVestaPreelab();
+  if(vestaPreRaw.length)$('vpeCountLabel').textContent=`${vestaPreRaw.length} movimiento(s) en caché local (sin conexión Vesta)`;
+  return;
+ }
+ $('vpeErrorBox').hidden=true;
+ $('vpeCountLabel').textContent='Consultando movimientos de pre-elaborados en Vesta…';
+ $('vpeBuscarBtn').disabled=true;
+ try{
+  const res=await vestaFetch('/producciones/movimientoStock?pagina=1&tamanoPagina=200');
+  const json=await res.json().catch(()=>({}));
+  if(!res.ok)throw new Error(json.message||json.error||`Error HTTP ${res.status}`);
+  vestaPreRaw=Array.isArray(json.data)?json.data:[];
+  saveVestaSubCache(VESTA_PRE_CACHE_KEY,vestaPreRaw);
+  renderVestaPreelab();
+ }catch(e){
+  $('vpeErrorBox').hidden=false;
+  $('vpeErrorBox').textContent='Error al consultar Pre-Elaborados: '+(e.message||e);
+ }finally{
+  $('vpeBuscarBtn').disabled=false;
+ }
+}
+
+function initVestaPreelabSub(){
+ if(!vestaPreRaw.length)loadVestaPreelab();
+ else renderVestaPreelab();
+}
+
+function exportVestaPreelabExcel(){
+ if(!window.XLSX){alert('No se encontró la librería SheetJS (XLSX).');return;}
+ const list=getFilteredVestaPreelab();
+ if(!list.length){alert('No hay movimientos en vista para exportar.');return;}
+ const rows=list.map(r=>{
+  const meta=acgmAuditMeta[getVpeKey(r)]||{};
+  const catName=meta.catId?(getVestaCatById(meta.catId)?.name||''):'';
+  return {
+   'Fecha':formatAcgmDateTime(r.fecha),
+   'Código Stock':r.codigo_stock||'',
+   'Código':r.codigo||'',
+   'Pre-Elaborado':r.nombre||'',
+   'Categoría auditoría':catName,
+   'Observación auditoría':meta.obs||'',
+   'Tipo':r.tipo||'',
+   'Tipo Movimiento':r.tipo_movimiento||'',
+   'Decomiso':r.tipo_decomiso||'',
+   'Cantidad':Number(r.cantidad||0),
+   'Stock Ant.':Number(r.stock_anterior||0),
+   'Stock Act.':Number(r.stock_actual||0),
+   'Usuario':r.usuario||'',
+   'Responsable':r.responsable||'',
+   'Observación Vesta':r.observacion||''
+  };
+ });
+ const ws=XLSX.utils.json_to_sheet(rows);
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,ws,'Mov_PreElaborados');
+ XLSX.writeFile(wb,`Vesta_PreElaborados_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// --- PRODUCCIÓN ---
+function getVprInsumoDesvios(r){
+ const ins=Array.isArray(r.insumos)?r.insumos:[];
+ return ins.filter(it=>Math.abs(Number(it.cantidad_estimada||0)-Number(it.cantidad_utilizada||0))>0.0001).length;
+}
+
+function getVprColValues(r,col){
+ if(col==='fecha')return [(r.fecha_produccion||'—').slice(0,10)];
+ if(col==='nombre')return [`${r.codigo||''} · ${r.nombre||'—'}`];
+ if(col==='responsable')return [r.nombre_responsable||r.nombre_usuario||'Sin responsable'];
+ if(col==='insumos')return [getVprInsumoDesvios(r)>0?'Con desvíos':'OK'];
+ return [];
+}
+
+function getFilteredVestaProduccion(){
+ const q=($('vprSearch')?.value||'').trim().toLocaleLowerCase('es');
+ const d1=$('vprDesde')?.value||'';
+ const d2=$('vprHasta')?.value||'';
+ return vestaProdRaw.filter(r=>{
+  const fday=String(r.fecha_produccion||'').slice(0,10);
+  if(d1 && fday && fday<d1)return false;
+  if(d2 && fday && fday>d2)return false;
+  const meta=acgmAuditMeta[getVprKey(r)]||{};
+  if(vestaSelectedCatIds.size>0){
+   if(!vestaSelectedCatIds.has(meta.catId||'__none__'))return false;
+  }
+  for(const col of Object.keys(vprColFilters)){
+   if(vprColFilters[col].size>0 && !getVprColValues(r,col).some(v=>vprColFilters[col].has(v)))return false;
+  }
+  if(q){
+   const catName=getVestaCatById(meta.catId)?.name||'';
+   const insNames=Array.isArray(r.insumos)?r.insumos.map(it=>it.nombre_insumo||'').join(' '):'';
+   const hay=[r.num_requisicion,r.codigo,r.nombre,r.nombre_responsable,r.nombre_usuario,r.observacion,insNames,catName,meta.obs]
+    .some(v=>(v||'').toLocaleLowerCase('es').includes(q));
+   if(!hay)return false;
+  }
+  return true;
+ });
+}
+
+function renderVestaProduccion(){
+ const list=getFilteredVestaProduccion();
+ let cDesv=0,sumU=0;
+ const resps=new Set();
+ list.forEach(r=>{
+  if(getVprInsumoDesvios(r)>0)cDesv++;
+  sumU+=Number(r.cantidad_utilizada||r.cantidad_estimada||0);
+  if(r.nombre_responsable)resps.add(r.nombre_responsable);
+ });
+ $('vprMetTotal').textContent=list.length;
+ $('vprMetDesvios').textContent=cDesv;
+ $('vprMetUnidades').textContent=sumU.toLocaleString('es-AR');
+ $('vprMetResp').textContent=resps.size;
+ $('vprCountLabel').textContent=`${list.length} producción(es) en vista (de ${vestaProdRaw.length} cargadas)`;
+ $('vprEmpty').hidden=list.length!==0;
+
+ document.querySelectorAll('.vColFilterBtn[data-vprcol]').forEach(btn=>{
+  const cnt=vprColFilters[btn.dataset.vprcol]?.size||0;
+  btn.classList.toggle('active',cnt>0);
+  btn.textContent=cnt>0?`▾(${cnt})`:'▾';
+ });
+
+ $('vprRows').innerHTML=list.map((r,idx)=>{
+  const meta=acgmAuditMeta[getVprKey(r)]||{};
+  const cat=meta.catId?getVestaCatById(meta.catId):null;
+  const catHtml=cat?`<div><span class="acgmCatPill" style="background:${esc(cat.color)}1a;color:${esc(cat.color)};border-color:${esc(cat.color)}55"><span class="acgmCatDot" style="width:7px;height:7px;flex:0 0 7px;background:${esc(cat.color)}"></span>${esc(cat.name)}</span></div>`:'';
+  const obsIcon=meta.obs?' <span title="Tiene observación de auditoría">📝</span>':'';
+  const rowStyle=cat?` style="background:${esc(cat.color)}18;box-shadow:inset 4px 0 0 ${esc(cat.color)}"`:'';
+  const desv=getVprInsumoDesvios(r);
+  const insCount=Array.isArray(r.insumos)?r.insumos.length:0;
+  return `
+   <tr class="item" data-vpr-idx="${idx}"${rowStyle}>
+    <td>
+     <div>${esc(formatAcgmDateTime(r.fecha_produccion))}</div>
+     <div style="font-size:11px;color:var(--muted)">${esc(r.num_requisicion||'—')}${obsIcon}</div>
+     ${catHtml}
+    </td>
+    <td>
+     <strong class="code">${esc(r.codigo||'—')}</strong>
+     <div style="font-size:12px;font-weight:700">${esc(r.nombre||'—')}</div>
+    </td>
+    <td>
+     <strong>${esc(r.nombre_responsable||'—')}</strong>
+     <div style="font-size:11px;color:var(--muted)">${esc(r.nombre_usuario||'—')}</div>
+    </td>
+    <td class="num">${esc(String(r.cantidad_estimada??0))} / <strong>${esc(String(r.cantidad_utilizada??0))}</strong></td>
+    <td>
+     <div style="font-size:12px;margin-bottom:3px">${insCount} insumo(s)</div>
+     ${desv>0?`<span class="pill inactive">⚠ ${desv} desvío(s)</span>`:'<span class="pill">OK</span>'}
+    </td>
+    <td style="font-size:11.5px;color:var(--muted)">${esc(r.observacion||'—')}</td>
+   </tr>
+  `;
+ }).join('');
+
+ $('vprRows').querySelectorAll('[data-vpr-idx]').forEach(tr=>{
+  const item=list[Number(tr.dataset.vprIdx)];
+  attachLongPressRow(tr,(x,y)=>openVestaSubCtxMenu('prod',item,x,y),()=>openVestaMovDetail('prod',item));
+ });
+}
+
+async function loadVestaProduccion(){
+ if(!vestaSession?.accessToken){
+  vestaProdRaw=getOfflineSubRows(VESTA_PROD_CACHE_KEY,'vesta_prod:',getVprKey,'fecha_produccion');
+  renderVestaProduccion();
+  if(vestaProdRaw.length)$('vprCountLabel').textContent=`${vestaProdRaw.length} producción(es) en caché local (sin conexión Vesta)`;
+  return;
+ }
+ $('vprErrorBox').hidden=true;
+ $('vprCountLabel').textContent='Consultando movimientos de producción en Vesta…';
+ $('vprBuscarBtn').disabled=true;
+ try{
+  const res=await vestaFetch('/producciones?pagina=1&tamanoPagina=200');
+  const json=await res.json().catch(()=>({}));
+  if(!res.ok)throw new Error(json.message||json.error||`Error HTTP ${res.status}`);
+  vestaProdRaw=Array.isArray(json.data)?json.data:[];
+  saveVestaSubCache(VESTA_PROD_CACHE_KEY,vestaProdRaw);
+  renderVestaProduccion();
+ }catch(e){
+  $('vprErrorBox').hidden=false;
+  $('vprErrorBox').textContent='Error al consultar Producción: '+(e.message||e);
+ }finally{
+  $('vprBuscarBtn').disabled=false;
+ }
+}
+
+function initVestaProduccionSub(){
+ if(!vestaProdRaw.length)loadVestaProduccion();
+ else renderVestaProduccion();
+}
+
+function exportVestaProduccionExcel(){
+ if(!window.XLSX){alert('No se encontró la librería SheetJS (XLSX).');return;}
+ const list=getFilteredVestaProduccion();
+ if(!list.length){alert('No hay producciones en vista para exportar.');return;}
+ const rows=list.map(r=>{
+  const meta=acgmAuditMeta[getVprKey(r)]||{};
+  const catName=meta.catId?(getVestaCatById(meta.catId)?.name||''):'';
+  return {
+   'Fecha':formatAcgmDateTime(r.fecha_produccion),
+   'Requisición':r.num_requisicion||'',
+   'Código':r.codigo||'',
+   'Pre-Elaborado':r.nombre||'',
+   'Responsable':r.nombre_responsable||'',
+   'Categoría auditoría':catName,
+   'Observación auditoría':meta.obs||'',
+   'Cant. Estimada':Number(r.cantidad_estimada||0),
+   'Cant. Utilizada':Number(r.cantidad_utilizada||0),
+   'Cant. Insumos':Array.isArray(r.insumos)?r.insumos.length:0,
+   'Desvíos insumos':getVprInsumoDesvios(r),
+   'Usuario':r.nombre_usuario||'',
+   'Observación Vesta':r.observacion||''
+  };
+ });
+ const ws=XLSX.utils.json_to_sheet(rows);
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,ws,'Mov_Produccion');
+ XLSX.writeFile(wb,`Vesta_Produccion_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// Listeners Pre-Elaborados y Producción
+$('vpeBuscarBtn').addEventListener('click',loadVestaPreelab);
+$('vpeSearch').addEventListener('input',renderVestaPreelab);
+$('vpeDesde').addEventListener('change',renderVestaPreelab);
+$('vpeHasta').addEventListener('change',renderVestaPreelab);
+$('vpeExportExcelBtn').addEventListener('click',exportVestaPreelabExcel);
+
+$('vprBuscarBtn').addEventListener('click',loadVestaProduccion);
+$('vprSearch').addEventListener('input',renderVestaProduccion);
+$('vprDesde').addEventListener('change',renderVestaProduccion);
+$('vprHasta').addEventListener('change',renderVestaProduccion);
+$('vprExportExcelBtn').addEventListener('click',exportVestaProduccionExcel);
+
+document.querySelectorAll('.vColFilterBtn[data-vpecol]').forEach(btn=>{
+ btn.addEventListener('click',e=>{
+  e.stopPropagation();
+  const col=btn.dataset.vpecol;
+  const allVals=[...new Set(vestaPreRaw.flatMap(r=>getVpeColValues(r,col)))].sort((a,b)=>a.localeCompare(b,'es'));
+  const titles={fecha:'Fecha',nombre:'Pre-Elaborado',tipo:'Tipo Mov.',cantidad:'Cantidad',usuario:'Usuario'};
+  openGenericColFilter({title:titles[col]||col,allVals,selectedSet:vpeColFilters[col],btnEl:btn,onChange:renderVestaPreelab});
+ });
+});
+
+document.querySelectorAll('.vColFilterBtn[data-vprcol]').forEach(btn=>{
+ btn.addEventListener('click',e=>{
+  e.stopPropagation();
+  const col=btn.dataset.vprcol;
+  const allVals=[...new Set(vestaProdRaw.flatMap(r=>getVprColValues(r,col)))].sort((a,b)=>a.localeCompare(b,'es'));
+  const titles={fecha:'Fecha',nombre:'Pre-Elaborado',responsable:'Responsable',insumos:'Insumos'};
+  openGenericColFilter({title:titles[col]||col,allVals,selectedSet:vprColFilters[col],btnEl:btn,onChange:renderVestaProduccion});
+ });
+});
+
+$('vmDetAuditObsSaveBtn').addEventListener('click',()=>{
+ const {kind,key,row}=vmCurrentDetail;
+ if(!key)return;
+ const val=$('vmDetAuditObsInput').value.trim();
+ const prev=acgmAuditMeta[key]||{};
+ acgmAuditMeta[key]={...prev,obs:val,snapshot:row||prev.snapshot||null};
+ if(!acgmAuditMeta[key].catId && !acgmAuditMeta[key].obs)delete acgmAuditMeta[key];
+ saveAcgmAuditMetaLocal();
+ syncAcgmRecordMetaToServer(key);
+ $('vmDetAuditObsSaved').hidden=false;
+ setTimeout(()=>{if($('vmDetAuditObsSaved'))$('vmDetAuditObsSaved').hidden=true;},2000);
+ if(kind==='pre')renderVestaPreelab();
+ else renderVestaProduccion();
+});
+
+$('vestaMovDetailModal').addEventListener('click',e=>{if(e.target===$('vestaMovDetailModal'))hide('vestaMovDetailModal');});
+
+// Asegurar que el filtro de categorías de Control de movimientos también refresque Pre-Elaborados y Producción
+const _origRenderVestaRec=renderVestaRecepciones;
+renderVestaRecepciones=function(){
+ _origRenderVestaRec();
+ if(activeMovSub==='preelab')renderVestaPreelab();
+ if(activeMovSub==='produccion')renderVestaProduccion();
+};
 
 cfgLoad();
 </script>
