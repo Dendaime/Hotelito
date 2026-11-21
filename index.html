@@ -2948,6 +2948,45 @@ function switchView(view){
  if(view==='compras')initAcgmComprasView();
 }
 
+function applyEditorUiState(){
+ $('editorAccess').hidden=isEditor;
+ $('logout').hidden=!isEditor;
+ if($('drawerLogoutBtn'))$('drawerLogoutBtn').hidden=!isEditor;
+ $('viewCatalogo').classList.toggle('editorActive',isEditor);
+ $('mainNav').hidden=!isEditor;
+ $('drawerTabRecuentos').hidden=!isEditor;
+ $('drawerTabPrealtas').hidden=!isEditor;
+ $('drawerTabPlanificacion').hidden=!isEditor;
+ $('drawerTabMovimientos').hidden=!isEditor;
+ $('drawerTabCompras').hidden=!isEditor;
+ $('drawerExternalConns').hidden=!isEditor;
+ if(isEditor){loadVestaSession();updateVestaAuthUI();loadAcgmSession();updateAcgmAuthUI();}
+ $('drawerModeLabel').textContent=isEditor?'Modo editor habilitado':'Modo consulta pública';
+ $('newArticle').hidden=!isEditor;
+ $('loadPhotosWrap').hidden=!isEditor;
+ $('downloadAllZipBtn').hidden=!isEditor;
+ $('loadPhotosMenu').classList.remove('show');
+
+ if(!isEditor){
+  activeRecuento=null;
+  hasInitialEditorLanding=false;
+  switchView('catalogo');
+ }else if(!hasInitialEditorLanding){
+  hasInitialEditorLanding=true;
+  switchView('planificacion');
+ }
+
+ if(currentUser&&!isEditor){
+  $('connection').textContent='Cuenta sin permisos';
+  $('connection').style.color='var(--warn)';
+ }else{
+  $('connection').textContent=isEditor
+   ?(navigator.onLine?'Editor conectado':'Editor (Offline)')
+   :(navigator.onLine?'Consulta pública':'Consulta (Offline)');
+  $('connection').style.color=navigator.onLine?'var(--accent2)':'var(--warn)';
+ }
+}
+
 async function connect(){
  const url=$('supabaseUrl').value.trim();
  const key=$('supabaseKey').value.trim();
@@ -2969,16 +3008,40 @@ async function connect(){
   const {data:{session}}=await sb.auth.getSession();
   currentUser=session?.user||null;
 
-  await loadData();
+  // Arranque instantáneo desde IndexedDB si ya hay caché local
+  const [cachedAll,cachedEd]=await Promise.all([
+   idbGet('kv','catalogo_all'),
+   currentUser?idbGet('kv',`editor_flag_${currentUser.id}`):Promise.resolve(false)
+  ]);
 
-  sb.auth.onAuthStateChange((_event,session)=>{
+  let instantBooted=false;
+  if((Array.isArray(cachedAll) && cachedAll.length) || (currentUser && cachedEd)){
+   all=Array.isArray(cachedAll)?cachedAll:[];
+   isEditor=!!(currentUser && cachedEd);
+   writeSavedCfg({url,key});
+   $('config').hidden=true;
+   $('workspace').hidden=false;
+   applyEditorUiState();
+   populateCategories();
+   render();
+   updateSyncIndicator();
+   instantBooted=true;
+  }
+
+  sb.auth.onAuthStateChange((event,session)=>{
+   if(event==='INITIAL_SESSION')return;
    currentUser=session?.user||null;
    setTimeout(()=>loadData(),0);
   });
 
-  writeSavedCfg({url,key});
-  $('config').hidden=true;
-  $('workspace').hidden=false;
+  if(instantBooted){
+   loadData({background:true});
+  }else{
+   await loadData();
+   writeSavedCfg({url,key});
+   $('config').hidden=true;
+   $('workspace').hidden=false;
+  }
 
  }catch(e){
   const cachedAll=await idbGet('kv','catalogo_all');
@@ -2999,9 +3062,10 @@ async function connect(){
  }
 }
 
-async function loadData(){
+async function loadData(opts={}){
  try{
-  isEditor=false;
+  const prevIsEditor=isEditor;
+  let nextIsEditor=false;
 
   if(currentUser){
    if(navigator.onLine){
@@ -3014,16 +3078,19 @@ async function loadData(){
       .maybeSingle();
 
      if(!roleErr){
-      isEditor=!!allowed;
-      await idbPut('kv',isEditor,`editor_flag_${currentUser.id}`);
+      nextIsEditor=!!allowed;
+      idbPut('kv',nextIsEditor,`editor_flag_${currentUser.id}`).catch(()=>{});
+     }else{
+      nextIsEditor=!!(await idbGet('kv',`editor_flag_${currentUser.id}`));
      }
     }catch{
-     isEditor=!!(await idbGet('kv',`editor_flag_${currentUser.id}`));
+     nextIsEditor=!!(await idbGet('kv',`editor_flag_${currentUser.id}`));
     }
    }else{
-    isEditor=!!(await idbGet('kv',`editor_flag_${currentUser.id}`));
+    nextIsEditor=!!(await idbGet('kv',`editor_flag_${currentUser.id}`));
    }
   }
+  isEditor=nextIsEditor;
 
   if(navigator.onLine){
    try{
@@ -3039,75 +3106,46 @@ async function loadData(){
     if(error)throw error;
 
     all=data||[];
-    await idbPut('kv',all,'catalogo_all');
+    idbPut('kv',all,'catalogo_all').catch(()=>{});
    }catch(netErr){
     const cached=await idbGet('kv','catalogo_all');
     if(cached)all=cached;
-    else throw netErr;
+    else if(!opts.background)throw netErr;
    }
   }else{
    const cached=await idbGet('kv','catalogo_all');
    all=cached||[];
   }
 
-  $('editorAccess').hidden=isEditor;
-  $('logout').hidden=!isEditor;
-  if($('drawerLogoutBtn'))$('drawerLogoutBtn').hidden=!isEditor;
-  $('viewCatalogo').classList.toggle('editorActive',isEditor);
-  $('mainNav').hidden=!isEditor;
-  $('drawerTabRecuentos').hidden=!isEditor;
-  $('drawerTabPrealtas').hidden=!isEditor;
-  $('drawerTabPlanificacion').hidden=!isEditor;
-  $('drawerTabMovimientos').hidden=!isEditor;
- $('drawerTabCompras').hidden=!isEditor;
- $('drawerExternalConns').hidden=!isEditor;
- if(isEditor){loadVestaSession();updateVestaAuthUI();loadAcgmSession();updateAcgmAuthUI();}
-  $('drawerModeLabel').textContent=isEditor?'Modo editor habilitado':'Modo consulta pública';
-  $('newArticle').hidden=!isEditor;
-  $('loadPhotosWrap').hidden=!isEditor;
-  $('downloadAllZipBtn').hidden=!isEditor;
-  $('loadPhotosMenu').classList.remove('show');
+  applyEditorUiState();
 
-  if(!isEditor){
-   activeRecuento=null;
-   hasInitialEditorLanding=false;
-   switchView('catalogo');
-  }else if(!hasInitialEditorLanding){
-   hasInitialEditorLanding=true;
-   switchView('planificacion');
+  if(!opts.background || prevIsEditor!==isEditor){
+   const tn=$('topNotice');
+   tn.textContent=isEditor
+    ?'Modo editor habilitado. Podés administrar la planificación operativa, el catálogo maestro, los recuentos físicos y las pre-altas.'
+    :'Consulta pública habilitada. Para administrar la planificación, artículos o fotografías, ingresá con una cuenta de editor autorizada.';
+   tn.hidden=false;
+   clearTimeout(window._topNoticeTimer);
+   window._topNoticeTimer=setTimeout(()=>{tn.hidden=true;},4000);
   }
-
-  const tn=$('topNotice');
-  tn.textContent=isEditor
-   ?'Modo editor habilitado. Podés administrar la planificación operativa, el catálogo maestro, los recuentos físicos y las pre-altas.'
-   :'Consulta pública habilitada. Para administrar la planificación, artículos o fotografías, ingresá con una cuenta de editor autorizada.';
-  tn.hidden=false;
-  clearTimeout(window._topNoticeTimer);
-  window._topNoticeTimer=setTimeout(()=>{tn.hidden=true;},4000);
 
   populateCategories();
   render();
-  await updateSyncIndicator();
+  updateSyncIndicator();
 
   if(isEditor){
    if(navigator.onLine){
-    await processSyncQueues(false);
-    await refreshPendingPrealtasBadge();
-    await refreshPlannerBadge();
+    Promise.allSettled([
+     processSyncQueues(false),
+     refreshPendingPrealtasBadge(),
+     refreshPlannerBadge()
+    ]);
    }
-   if(activeView==='recuentos')await loadRecuentos();
-   if(activeView==='prealtas')await loadPrealtasInbox();
-   if(activeView==='planificacion')await loadPlannerModule();
-  }
-
-  if(currentUser&&!isEditor){
-   $('connection').textContent='Cuenta sin permisos';
-   $('connection').style.color='var(--warn)';
-  }else{
-   $('connection').textContent=isEditor
-    ?(navigator.onLine?'Editor conectado':'Editor (Offline)')
-    :(navigator.onLine?'Consulta pública':'Consulta (Offline)');
-   $('connection').style.color=navigator.onLine?'var(--accent2)':'var(--warn)';
+   if(!opts.background){
+    if(activeView==='recuentos')loadRecuentos();
+    if(activeView==='prealtas')loadPrealtasInbox();
+    if(activeView==='planificacion')loadPlannerModule();
+   }
   }
 
  }catch(e){
