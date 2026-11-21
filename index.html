@@ -1207,8 +1207,18 @@ input::placeholder{color:#9aa8ad}
 
   <!-- VISTA 5: CONTROL DE MOVIMIENTOS (VESTA) -->
   <div id="viewMovimientos" hidden>
-   <div class="subNavTabs">
-    <button type="button" class="subNavTab active" data-mov-sub="recepciones">📥 Planillas de recepción</button>
+   <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+    <div class="subNavTabs" style="margin-bottom:0">
+     <button type="button" class="subNavTab active" data-mov-sub="recepciones">📥 Planillas de recepción</button>
+    </div>
+    <div class="auditFilterBar" id="vCatBar" style="margin:0">
+     <button type="button" class="auditChipBtn active" id="vCatAllBtn">Todas</button>
+     <div class="acgmCatFilterWrap">
+      <button type="button" class="auditChipBtn" id="vCatFilterBtn">🏷️ Categorías ▾</button>
+      <div id="vCatFilterPopover" class="acgmCatPopover" hidden></div>
+     </div>
+     <button type="button" class="auditChipBtn" id="vAddCatBtn" title="Crear o administrar categorías de auditoría" style="font-weight:900;padding:6px 12px">+</button>
+    </div>
    </div>
 
    <!-- SUB-VISTA A: PLANILLAS DE RECEPCIÓN (VESTA) -->
@@ -1265,7 +1275,7 @@ input::placeholder{color:#9aa8ad}
 
     <div class="meta">
      <span id="vCountLabel">Listo para consultar</span>
-     <span>Tocá una fila para ver ítems, desvíos, comprobantes y firmas</span>
+     <span>Clic simple: ítems, evidencias y firmas · Clic sostenido (o derecho): categorizar</span>
     </div>
 
     <div class="tablewrap">
@@ -1755,6 +1765,16 @@ input::placeholder{color:#9aa8ad}
   </div>
 
   <div id="vDetFirmas" class="firmasGrid"></div>
+  <div class="acgmAuditObsBox" id="vDetAuditObsBox">
+   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+    <strong style="font-size:12.5px">📝 Observación auditoría <span style="font-weight:500;color:var(--muted)">(solo Hotelito)</span></strong>
+    <span id="vDetAuditObsSaved" style="font-size:11.5px;color:var(--accent2);font-weight:700" hidden>✓ Guardado</span>
+   </div>
+   <textarea id="vDetAuditObsInput" placeholder="Escribí una observación de auditoría para esta planilla…"></textarea>
+   <div style="display:flex;justify-content:flex-end;margin-top:8px">
+    <button type="button" class="sm" id="vDetAuditObsSaveBtn">Guardar observación</button>
+   </div>
+  </div>
  </div>
 </div>
 
@@ -9036,9 +9056,10 @@ function saveVestaSession(sess){
 
 function updateVestaAuthUI(){
  const connected=!!vestaSession?.accessToken;
+ const hasOffline=(typeof getOfflineVestaRows==='function') && getOfflineVestaRows().length>0;
  $('vestaLoginForm').style.display=connected?'none':'grid';
  $('vestaConnectedActions').style.display=connected?'flex':'none';
- $('vestaRecepcionesArea').hidden=!connected;
+ $('vestaRecepcionesArea').hidden=!(connected || hasOffline);
  const notice=$('vestaDisconnectedNotice');
  if(notice)notice.style.display=connected?'none':'flex';
  const badge=$('vestaConnBadge');
@@ -9169,6 +9190,199 @@ function analyzeVestaRecepcion(r){
  return {itemsCount:items.length,desvios,sinComp,sinFirma};
 }
 
+const VESTA_LAST_CACHE_KEY='hotelito_vesta_last_cache';
+let vestaSelectedCatIds=new Set();
+let vestaCurrentDetailKey=null;
+
+function getVestaRecordKey(r){
+ if(!r)return '';
+ const rawId=r.id??r.id_planilla??r.id_recepcion;
+ if(rawId!=null && rawId!=='')return 'vesta:'+String(rawId);
+ return 'vesta:'+`${r.numero_documento||''}_${(r.fecha_recepcion||r.fecha_documento||'').slice(0,10)}`;
+}
+
+function buildVestaRecordSnapshot(r){
+ if(!r)return null;
+ return {
+  id:r.id??r.id_planilla??r.id_recepcion??null,
+  numero_documento:r.numero_documento||'',
+  tipo_ingreso:r.tipo_ingreso||'',
+  fecha_documento:r.fecha_documento||'',
+  fecha_recepcion:r.fecha_recepcion||'',
+  proveedor_nombre:r.proveedor_nombre||r.nombre_proveedor||'',
+  estado:r.estado||'',
+  url_comprobante:r.url_comprobante||null,
+  url_factura_pago:r.url_factura_pago||null,
+  url_autorizacion_dm:r.url_autorizacion_dm||null,
+  url_comprobante_pago:r.url_comprobante_pago||null,
+  firma_entrega:r.firma_entrega||null,
+  firma_recepcion:r.firma_recepcion||null,
+  aclaracion_entrega:r.aclaracion_entrega||'',
+  aclaracion_recepcion:r.aclaracion_recepcion||'',
+  items:Array.isArray(r.items)?r.items:[]
+ };
+}
+
+function saveVestaLastCache(rows){
+ if(!Array.isArray(rows) || !rows.length)return;
+ try{
+  const snaps=rows.map(buildVestaRecordSnapshot).filter(Boolean);
+  localStorage.setItem(VESTA_LAST_CACHE_KEY,JSON.stringify({savedAt:new Date().toISOString(),rows:snaps}));
+ }catch{}
+}
+
+function loadVestaLastCache(){
+ try{
+  const raw=localStorage.getItem(VESTA_LAST_CACHE_KEY);
+  if(!raw)return {savedAt:null,rows:[]};
+  const parsed=JSON.parse(raw);
+  return {savedAt:parsed?.savedAt||null,rows:Array.isArray(parsed?.rows)?parsed.rows:[]};
+ }catch{return {savedAt:null,rows:[]};}
+}
+
+function getOfflineVestaRows(){
+ const byKey=new Map();
+ const cached=loadVestaLastCache();
+ cached.rows.forEach(r=>{
+  const key=getVestaRecordKey(r);
+  if(key)byKey.set(key,{...r,_offlineSnapshot:true});
+ });
+ if(typeof acgmAuditMeta==='object' && acgmAuditMeta){
+  Object.entries(acgmAuditMeta)
+   .filter(([k,m])=>k.startsWith('vesta:') && m && (m.catId || (m.obs && m.obs.trim())))
+   .forEach(([key,m])=>{
+    if(byKey.has(key))return;
+    if(m.snapshot)byKey.set(key,{...m.snapshot,_offlineSnapshot:true});
+   });
+ }
+ return [...byKey.values()].sort((a,b)=>String(b.fecha_recepcion||b.fecha_documento||'').localeCompare(String(a.fecha_recepcion||a.fecha_documento||'')));
+}
+
+function backfillVestaAuditSnapshots(rows){
+ if(!Array.isArray(rows) || !rows.length || typeof acgmAuditMeta!=='object')return;
+ let changed=false;
+ rows.forEach(r=>{
+  const key=getVestaRecordKey(r);
+  const meta=acgmAuditMeta[key];
+  if(!meta || (!meta.catId && !(meta.obs && meta.obs.trim())))return;
+  const nextSnap=buildVestaRecordSnapshot(r);
+  const prevSnap=meta.snapshot;
+  if(!prevSnap || prevSnap.estado!==nextSnap.estado || prevSnap.numero_documento!==nextSnap.numero_documento){
+   meta.snapshot=nextSnap;
+   changed=true;
+   if(typeof syncAcgmRecordMetaToServer==='function')syncAcgmRecordMetaToServer(key);
+  }
+ });
+ if(changed && typeof saveAcgmAuditMetaLocal==='function')saveAcgmAuditMetaLocal();
+}
+
+function refreshVestaOfflineViewIfDisconnected(){
+ const connected=!!vestaSession?.accessToken;
+ if(connected)return;
+ const rows=getOfflineVestaRows();
+ vestaRecepcionesRaw=rows;
+ updateVestaAuthUI();
+ if(rows.length){
+  const cached=loadVestaLastCache();
+  const when=cached.savedAt && typeof formatAcgmDateTime==='function'?` · act. ${formatAcgmDateTime(cached.savedAt)}`:'';
+  renderVestaRecepciones();
+  $('vCountLabel').textContent=`${rows.length} planilla(s) en caché local (sin conexión Vesta${when})`;
+ }
+}
+
+function assignVestaCategory(r,catId){
+ const key=getVestaRecordKey(r);
+ if(!key)return;
+ const prev=acgmAuditMeta[key]||{};
+ const snap=buildVestaRecordSnapshot(r)||prev.snapshot||null;
+ acgmAuditMeta[key]={...prev,catId:catId||'',snapshot:snap};
+ if(!acgmAuditMeta[key].catId && !acgmAuditMeta[key].obs)delete acgmAuditMeta[key];
+ saveAcgmAuditMetaLocal();
+ syncAcgmRecordMetaToServer(key);
+ renderVestaRecepciones();
+}
+
+function renderVestaCatFilterUI(){
+ if(!$('vCatAllBtn') || !$('vCatFilterBtn') || !$('vCatFilterPopover'))return;
+ const hasFilter=vestaSelectedCatIds.size>0;
+ $('vCatAllBtn').classList.toggle('active',!hasFilter);
+ $('vCatFilterBtn').classList.toggle('active',hasFilter);
+ $('vCatFilterBtn').textContent=hasFilter?`🏷️ Categorías (${vestaSelectedCatIds.size}) ▾`:'🏷️ Categorías ▾';
+
+ const pop=$('vCatFilterPopover');
+ const cats=Array.isArray(acgmAuditCats)?acgmAuditCats:[];
+ const itemsHtml=cats.map(c=>`
+  <label class="acgmCatCheck">
+   <input type="checkbox" value="${esc(c.id)}" ${vestaSelectedCatIds.has(c.id)?'checked':''}>
+   <span class="acgmCatDot" style="background:${esc(c.color)}"></span>
+   <span style="flex:1">${esc(c.name)}</span>
+  </label>
+ `).join('');
+ pop.innerHTML=`
+  ${itemsHtml||'<div style="font-size:12px;color:var(--muted);padding:6px 8px">Aún no creaste categorías. Usá el botón "+".</div>'}
+  <label class="acgmCatCheck" style="border-top:1px solid var(--line);margin-top:4px;padding-top:8px">
+   <input type="checkbox" value="__none__" ${vestaSelectedCatIds.has('__none__')?'checked':''}>
+   <span class="acgmCatDot" style="background:var(--line)"></span>
+   <span style="flex:1;color:var(--muted)">Sin categoría</span>
+  </label>
+  ${hasFilter?'<button type="button" class="secondary sm" id="vCatClearFilterBtn" style="width:100%;margin-top:6px">Limpiar filtro</button>':''}
+ `;
+ pop.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
+  cb.addEventListener('change',()=>{
+   if(cb.checked)vestaSelectedCatIds.add(cb.value);
+   else vestaSelectedCatIds.delete(cb.value);
+   renderVestaCatFilterUI();
+   renderVestaRecepciones();
+  });
+ });
+ const clearBtn=$('vCatClearFilterBtn');
+ if(clearBtn)clearBtn.addEventListener('click',()=>{
+  vestaSelectedCatIds.clear();
+  renderVestaCatFilterUI();
+  renderVestaRecepciones();
+ });
+}
+
+function openVestaCtxMenu(r,clientX,clientY){
+ acgmCtxJustOpenedAt=Date.now();
+ const m=$('acgmCtxMenu');
+ const key=getVestaRecordKey(r);
+ const curCatId=acgmAuditMeta[key]?.catId||'';
+ m.innerHTML=`
+  <div class="acgmCtxTitle">Categorizar · ${esc(r.numero_documento||'Planilla')}</div>
+  ${acgmAuditCats.map(c=>`
+   <button type="button" class="acgmCtxItem" data-ctx-cat="${esc(c.id)}">
+    <span class="acgmCatDot" style="background:${esc(c.color)}"></span>
+    <span style="flex:1">${esc(c.name)}</span>
+    ${curCatId===c.id?'<span style="color:var(--accent2);font-weight:800">✓</span>':''}
+   </button>
+  `).join('')}
+  ${!acgmAuditCats.length?'<div style="font-size:12px;color:var(--muted);padding:6px 8px">Sin categorías creadas</div>':''}
+  ${curCatId?'<button type="button" class="acgmCtxItem" data-ctx-cat="" style="color:var(--danger);border-top:1px solid var(--line);margin-top:4px;padding-top:8px">✕ Quitar categoría</button>':''}
+  <button type="button" class="acgmCtxItem" data-ctx-new="1" style="color:var(--accent);border-top:1px solid var(--line);margin-top:4px;padding-top:8px">+ Nueva categoría…</button>
+ `;
+ m.hidden=false;
+ const rect=m.getBoundingClientRect();
+ const x=Math.min(clientX,window.innerWidth-rect.width-10);
+ const y=Math.min(clientY,window.innerHeight-rect.height-10);
+ m.style.left=Math.max(8,x)+'px';
+ m.style.top=Math.max(8,y)+'px';
+
+ m.querySelectorAll('[data-ctx-cat]').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+   assignVestaCategory(r,btn.dataset.ctxCat);
+   closeAcgmCtxMenu();
+  });
+ });
+ const newBtn=m.querySelector('[data-ctx-new]');
+ if(newBtn)newBtn.addEventListener('click',()=>{
+  closeAcgmCtxMenu();
+  renderAcgmCatManageList();
+  show('acgmCatModal');
+  setTimeout(()=>$('acgmCatNameInput').focus(),50);
+ });
+}
+
 async function loadVestaRecepciones(){
  if(!vestaSession?.accessToken)return;
  showVestaError('');
@@ -9182,6 +9396,8 @@ async function loadVestaRecepciones(){
   const payload=json.data||json;
   const list=Array.isArray(payload)?payload:(payload.historial||payload.items||payload.rows||payload.registros||[]);
   vestaRecepcionesRaw=Array.isArray(list)?list:[];
+  saveVestaLastCache(vestaRecepcionesRaw);
+  backfillVestaAuditSnapshots(vestaRecepcionesRaw);
   renderVestaRecepciones();
  }catch(e){
   showVestaError('Error al consultar planillas: '+(e.message||e));
@@ -9205,6 +9421,11 @@ function renderVestaRecepciones(){
  $('vMetSinFirma').textContent=cSinFirma;
 
  const list=vestaRecepcionesRaw.filter(r=>{
+  const meta=(typeof acgmAuditMeta==='object' && acgmAuditMeta[getVestaRecordKey(r)])||{};
+  if(vestaSelectedCatIds.size>0){
+   const catId=meta.catId||'__none__';
+   if(!vestaSelectedCatIds.has(catId))return false;
+  }
   const a=analyzeVestaRecepcion(r);
   if(vestaAuditFilter==='desvios')return a.desvios>0;
   if(vestaAuditFilter==='sin_comp')return a.sinComp;
@@ -9212,11 +9433,17 @@ function renderVestaRecepciones(){
   return true;
  });
 
- $('vCountLabel').textContent=`${list.length} planilla(s) en vista (de ${vestaRecepcionesRaw.length} traídas de Vesta)`;
+ $('vCountLabel').textContent=`${list.length} planilla(s) en vista (de ${vestaRecepcionesRaw.length} cargadas)`;
  $('vRecepcionesEmpty').hidden=list.length!==0;
 
  $('vRecepcionesRows').innerHTML=list.map((r,idx)=>{
   const a=analyzeVestaRecepcion(r);
+  const meta=(typeof acgmAuditMeta==='object' && acgmAuditMeta[getVestaRecordKey(r)])||{};
+  const cat=meta.catId && typeof getAcgmCatById==='function'?getAcgmCatById(meta.catId):null;
+  const catHtml=cat?`<div><span class="acgmCatPill" style="background:${esc(cat.color)}1a;color:${esc(cat.color)};border-color:${esc(cat.color)}55"><span class="acgmCatDot" style="width:7px;height:7px;flex:0 0 7px;background:${esc(cat.color)}"></span>${esc(cat.name)}</span></div>`:'';
+  const obsIcon=meta.obs?' <span title="Tiene observación de auditoría">📝</span>':'';
+  const rowStyle=cat?` style="background:${esc(cat.color)}18;box-shadow:inset 4px 0 0 ${esc(cat.color)}"`:'';
+
   const alerts=[];
   if(a.desvios>0)alerts.push(`<span class="pill inactive">⚠ ${a.desvios} desvío(s)</span>`);
   if(a.sinComp)alerts.push('<span class="pill no">Sin comprobante</span>');
@@ -9230,10 +9457,13 @@ function renderVestaRecepciones(){
   if(r.url_comprobante_pago)evids.push('💳 Pago');
 
   return `
-   <tr class="item" data-vrec-idx="${idx}">
-    <td>${esc((r.fecha_recepcion||r.fecha_documento||'—').slice(0,10))}</td>
+   <tr class="item" data-vrec-idx="${idx}"${rowStyle}>
     <td>
-     <strong class="code">${esc(r.numero_documento||'S/N')}</strong>
+     <div>${esc((r.fecha_recepcion||r.fecha_documento||'—').slice(0,10))}</div>
+     ${catHtml}
+    </td>
+    <td>
+     <strong class="code">${esc(r.numero_documento||'S/N')}</strong>${obsIcon}
      <div style="font-size:11px;color:var(--muted);text-transform:uppercase">${esc(r.tipo_ingreso||'—')}</div>
     </td>
     <td><strong>${esc(r.proveedor_nombre||r.nombre_proveedor||'—')}</strong></td>
@@ -9248,12 +9478,43 @@ function renderVestaRecepciones(){
  }).join('');
 
  $('vRecepcionesRows').querySelectorAll('[data-vrec-idx]').forEach(tr=>{
-  tr.onclick=()=>openVestaRecepcionDetail(list[Number(tr.dataset.vrecIdx)]);
+  const item=list[Number(tr.dataset.vrecIdx)];
+  let lpTimer=null;
+  let lpTriggered=false;
+  let startX=0, startY=0;
+  tr.addEventListener('pointerdown',e=>{
+   if(e.button && e.button!==0)return;
+   lpTriggered=false;
+   startX=e.clientX; startY=e.clientY;
+   clearTimeout(lpTimer);
+   lpTimer=setTimeout(()=>{
+    lpTriggered=true;
+    openVestaCtxMenu(item,startX,startY);
+   },450);
+  });
+  tr.addEventListener('pointermove',e=>{
+   if(!lpTimer)return;
+   if(Math.hypot(e.clientX-startX,e.clientY-startY)>10){clearTimeout(lpTimer);lpTimer=null;}
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>{
+   tr.addEventListener(ev,()=>{clearTimeout(lpTimer);lpTimer=null;});
+  });
+  tr.addEventListener('contextmenu',e=>{
+   e.preventDefault();
+   clearTimeout(lpTimer);lpTimer=null;
+   openVestaCtxMenu(item,e.clientX,e.clientY);
+  });
+  tr.addEventListener('click',e=>{
+   if(lpTriggered){e.stopPropagation();lpTriggered=false;return;}
+   closeAcgmCtxMenu();
+   openVestaRecepcionDetail(item);
+  });
  });
 }
 
 function openVestaRecepcionDetail(r){
  if(!r)return;
+ vestaCurrentDetailKey=getVestaRecordKey(r);
  $('vDetTitle').textContent=`${(r.tipo_ingreso||'Planilla').toUpperCase()} ${r.numero_documento||'S/N'} · ${r.proveedor_nombre||r.nombre_proveedor||'Proveedor'}`;
  $('vDetMeta').textContent=`Fecha doc.: ${(r.fecha_documento||'—').slice(0,10)} · Fecha recepción: ${(r.fecha_recepcion||'—').slice(0,10)} · Estado: ${r.estado||'—'}`;
 
@@ -9297,6 +9558,9 @@ function openVestaRecepcionDetail(r){
   </div>
  `;
 
+ if($('vDetAuditObsInput'))$('vDetAuditObsInput').value=acgmAuditMeta[vestaCurrentDetailKey]?.obs||'';
+ if($('vDetAuditObsSaved'))$('vDetAuditObsSaved').hidden=true;
+
  show('vestaRecepcionModal');
 }
 
@@ -9326,6 +9590,8 @@ async function exportVestaRecepcionesExcel(){
 
 function initMovimientosView(){
  loadVestaSession();
+ if(typeof loadAcgmAuditState==='function')loadAcgmAuditState();
+ renderVestaCatFilterUI();
  updateVestaAuthUI();
  if(!$('vFechaFin').value){
   const hoy=new Date();
@@ -9335,8 +9601,9 @@ function initMovimientosView(){
  }
  if(vestaSession?.accessToken && !vestaRecepcionesRaw.length){
   loadVestaRecepciones();
+ }else if(!vestaSession?.accessToken){
+  refreshVestaOfflineViewIfDisconnected();
  }
- if(activeMovSub==='compras')initAcgmComprasView();
 }
 
 $('tabMovimientos').addEventListener('click',()=>switchView('movimientos'));
@@ -9736,7 +10003,7 @@ function getOfflineControlledAcgmRows(){
   if(key)byKey.set(key,{...r,_offlineSnapshot:true});
  });
  Object.entries(acgmAuditMeta)
-  .filter(([,m])=>m && (m.catId || (m.obs && m.obs.trim())))
+  .filter(([k,m])=>!k.startsWith('vesta:') && m && (m.catId || (m.obs && m.obs.trim())))
   .forEach(([key,m])=>{
    if(byKey.has(key))return;
    if(m.snapshot){
@@ -10463,14 +10730,54 @@ $('aDetAuditObsSaveBtn').addEventListener('click',()=>{
  renderAcgmFacturas();
 });
 
-['acgmFacturaModal','acgmCatModal'].forEach(id=>{
+['acgmFacturaModal','acgmCatModal','vestaRecepcionModal'].forEach(id=>{
  const el=$(id);
  if(el)el.addEventListener('click',e=>{if(e.target===el)hide(id);});
+});
+
+if($('vCatAllBtn'))$('vCatAllBtn').addEventListener('click',()=>{
+ vestaSelectedCatIds.clear();
+ $('vCatFilterPopover').hidden=true;
+ renderVestaCatFilterUI();
+ renderVestaRecepciones();
+});
+
+if($('vCatFilterBtn'))$('vCatFilterBtn').addEventListener('click',e=>{
+ e.stopPropagation();
+ const pop=$('vCatFilterPopover');
+ pop.hidden=!pop.hidden;
+ if(!pop.hidden)renderVestaCatFilterUI();
+});
+
+if($('vAddCatBtn'))$('vAddCatBtn').addEventListener('click',()=>{
+ $('vCatFilterPopover').hidden=true;
+ renderAcgmCatManageList();
+ show('acgmCatModal');
+ setTimeout(()=>$('acgmCatNameInput').focus(),50);
+});
+
+if($('vDetAuditObsSaveBtn'))$('vDetAuditObsSaveBtn').addEventListener('click',()=>{
+ if(!vestaCurrentDetailKey)return;
+ const val=$('vDetAuditObsInput').value.trim();
+ const prev=acgmAuditMeta[vestaCurrentDetailKey]||{};
+ const curRow=vestaRecepcionesRaw.find(r=>getVestaRecordKey(r)===vestaCurrentDetailKey);
+ const snap=buildVestaRecordSnapshot(curRow)||prev.snapshot||null;
+ acgmAuditMeta[vestaCurrentDetailKey]={...prev,obs:val,snapshot:snap};
+ if(!acgmAuditMeta[vestaCurrentDetailKey].catId && !acgmAuditMeta[vestaCurrentDetailKey].obs){
+  delete acgmAuditMeta[vestaCurrentDetailKey];
+ }
+ saveAcgmAuditMetaLocal();
+ syncAcgmRecordMetaToServer(vestaCurrentDetailKey);
+ $('vDetAuditObsSaved').hidden=false;
+ setTimeout(()=>{if($('vDetAuditObsSaved'))$('vDetAuditObsSaved').hidden=true;},2000);
+ renderVestaRecepciones();
 });
 
 document.addEventListener('click',e=>{
  const pop=$('aCatFilterPopover');
  if(pop && !pop.hidden && !e.target.closest('.acgmCatFilterWrap'))pop.hidden=true;
+ const vpop=$('vCatFilterPopover');
+ if(vpop && !vpop.hidden && !e.target.closest('.acgmCatFilterWrap'))vpop.hidden=true;
  const ctx=$('acgmCtxMenu');
  if(ctx && !ctx.hidden && (Date.now()-acgmCtxJustOpenedAt)>350 && !e.target.closest('#acgmCtxMenu'))ctx.hidden=true;
 });
