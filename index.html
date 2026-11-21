@@ -1241,29 +1241,8 @@ input::placeholder{color:#9aa8ad}
     <div class="toolbar">
      <input id="vFechaInicio" type="date" title="Fecha desde">
      <input id="vFechaFin" type="date" title="Fecha hasta">
-     <input id="vProveedor" placeholder="Proveedor…" style="min-width:150px">
-     <input id="vDocumento" placeholder="N° documento…" style="min-width:140px">
-     <select id="vTipo">
-      <option value="">Todos los tipos</option>
-      <option value="factura">Factura</option>
-      <option value="remito">Remito</option>
-      <option value="comprobante">Comprobante</option>
-     </select>
-     <select id="vEstado">
-      <option value="">Todos los estados</option>
-      <option value="borrador">Borrador</option>
-      <option value="pendiente_cm">Pendiente CM</option>
-      <option value="solicitud_pago">Solicitud pago</option>
-      <option value="pago_autorizado_dm">Pago autorizado DM</option>
-      <option value="pago_autorizado_fm">Pago autorizado FM</option>
-      <option value="pago_vinculado">Pago vinculado</option>
-      <option value="pago_realizado">Pago realizado</option>
-     </select>
-     <select id="vModo">
-      <option value="historial">Modo: Historial</option>
-      <option value="precarga">Modo: Pre-cargas</option>
-     </select>
-     <button type="button" id="vBuscarBtn">Buscar</button>
+     <input id="vSearch" placeholder="Buscar proveedor, N° doc., tipo, estado, categoría u observación…" style="flex:1;min-width:210px">
+     <button type="button" id="vBuscarBtn">Consultar</button>
     </div>
 
     <div class="auditFilterBar" id="vAuditChips">
@@ -9169,13 +9148,9 @@ async function vestaFetch(path,options={},retry=true){
 function buildVestaQueryParams(extra={}){
  const p=new URLSearchParams();
  const map={
-  modo:$('vModo').value||'historial',
+  modo:'historial',
   fechaInicio:$('vFechaInicio').value,
   fechaFin:$('vFechaFin').value,
-  nombre_proveedor:$('vProveedor').value.trim(),
-  numero_documento:$('vDocumento').value.trim(),
-  tipo:$('vTipo').value,
-  estado:$('vEstado').value,
   ...extra
  };
  Object.entries(map).forEach(([k,v])=>{if(v!==undefined&&v!==null&&v!=='')p.set(k,String(v));});
@@ -9302,6 +9277,18 @@ function assignVestaCategory(r,catId){
  renderVestaRecepciones();
 }
 
+const VESTA_AUDIT_CATS_KEY='hotelito_vesta_audit_cats';
+let vestaAuditCats=[];
+let catModalScope='acgm';
+
+function getVestaCatById(id){
+ return vestaAuditCats.find(c=>c.id===id)||null;
+}
+
+function saveVestaAuditCatsLocal(){
+ try{localStorage.setItem(VESTA_AUDIT_CATS_KEY,JSON.stringify(vestaAuditCats));}catch{}
+}
+
 function renderVestaCatFilterUI(){
  if(!$('vCatAllBtn') || !$('vCatFilterBtn') || !$('vCatFilterPopover'))return;
  const hasFilter=vestaSelectedCatIds.size>0;
@@ -9310,7 +9297,7 @@ function renderVestaCatFilterUI(){
  $('vCatFilterBtn').textContent=hasFilter?`🏷️ Categorías (${vestaSelectedCatIds.size}) ▾`:'🏷️ Categorías ▾';
 
  const pop=$('vCatFilterPopover');
- const cats=Array.isArray(acgmAuditCats)?acgmAuditCats:[];
+ const cats=Array.isArray(vestaAuditCats)?vestaAuditCats:[];
  const itemsHtml=cats.map(c=>`
   <label class="acgmCatCheck">
    <input type="checkbox" value="${esc(c.id)}" ${vestaSelectedCatIds.has(c.id)?'checked':''}>
@@ -9350,14 +9337,14 @@ function openVestaCtxMenu(r,clientX,clientY){
  const curCatId=acgmAuditMeta[key]?.catId||'';
  m.innerHTML=`
   <div class="acgmCtxTitle">Categorizar · ${esc(r.numero_documento||'Planilla')}</div>
-  ${acgmAuditCats.map(c=>`
+  ${vestaAuditCats.map(c=>`
    <button type="button" class="acgmCtxItem" data-ctx-cat="${esc(c.id)}">
     <span class="acgmCatDot" style="background:${esc(c.color)}"></span>
     <span style="flex:1">${esc(c.name)}</span>
     ${curCatId===c.id?'<span style="color:var(--accent2);font-weight:800">✓</span>':''}
    </button>
   `).join('')}
-  ${!acgmAuditCats.length?'<div style="font-size:12px;color:var(--muted);padding:6px 8px">Sin categorías creadas</div>':''}
+  ${!vestaAuditCats.length?'<div style="font-size:12px;color:var(--muted);padding:6px 8px">Sin categorías creadas</div>':''}
   ${curCatId?'<button type="button" class="acgmCtxItem" data-ctx-cat="" style="color:var(--danger);border-top:1px solid var(--line);margin-top:4px;padding-top:8px">✕ Quitar categoría</button>':''}
   <button type="button" class="acgmCtxItem" data-ctx-new="1" style="color:var(--accent);border-top:1px solid var(--line);margin-top:4px;padding-top:8px">+ Nueva categoría…</button>
  `;
@@ -9377,6 +9364,7 @@ function openVestaCtxMenu(r,clientX,clientY){
  const newBtn=m.querySelector('[data-ctx-new]');
  if(newBtn)newBtn.addEventListener('click',()=>{
   closeAcgmCtxMenu();
+  catModalScope='vesta';
   renderAcgmCatManageList();
   show('acgmCatModal');
   setTimeout(()=>$('acgmCatNameInput').focus(),50);
@@ -9420,11 +9408,22 @@ function renderVestaRecepciones(){
  $('vMetSinComp').textContent=cSinComp;
  $('vMetSinFirma').textContent=cSinFirma;
 
+ const q=($('vSearch')?.value||'').trim().toLocaleLowerCase('es');
  const list=vestaRecepcionesRaw.filter(r=>{
   const meta=(typeof acgmAuditMeta==='object' && acgmAuditMeta[getVestaRecordKey(r)])||{};
   if(vestaSelectedCatIds.size>0){
    const catId=meta.catId||'__none__';
    if(!vestaSelectedCatIds.has(catId))return false;
+  }
+  if(q){
+   const catName=getVestaCatById(meta.catId)?.name||'';
+   const itemNames=Array.isArray(r.items)?r.items.map(it=>it.nombre_insumo||it.insumo||'').join(' '):'';
+   const hay=[
+    r.proveedor_nombre,r.nombre_proveedor,r.numero_documento,r.tipo_ingreso,
+    r.estado,r.fecha_recepcion,r.fecha_documento,r.aclaracion_entrega,
+    r.aclaracion_recepcion,itemNames,catName,meta.obs
+   ].some(v=>(v||'').toLocaleLowerCase('es').includes(q));
+   if(!hay)return false;
   }
   const a=analyzeVestaRecepcion(r);
   if(vestaAuditFilter==='desvios')return a.desvios>0;
@@ -9439,7 +9438,7 @@ function renderVestaRecepciones(){
  $('vRecepcionesRows').innerHTML=list.map((r,idx)=>{
   const a=analyzeVestaRecepcion(r);
   const meta=(typeof acgmAuditMeta==='object' && acgmAuditMeta[getVestaRecordKey(r)])||{};
-  const cat=meta.catId && typeof getAcgmCatById==='function'?getAcgmCatById(meta.catId):null;
+  const cat=meta.catId?getVestaCatById(meta.catId):null;
   const catHtml=cat?`<div><span class="acgmCatPill" style="background:${esc(cat.color)}1a;color:${esc(cat.color)};border-color:${esc(cat.color)}55"><span class="acgmCatDot" style="width:7px;height:7px;flex:0 0 7px;background:${esc(cat.color)}"></span>${esc(cat.name)}</span></div>`:'';
   const obsIcon=meta.obs?' <span title="Tiene observación de auditoría">📝</span>':'';
   const rowStyle=cat?` style="background:${esc(cat.color)}18;box-shadow:inset 4px 0 0 ${esc(cat.color)}"`:'';
@@ -9920,6 +9919,7 @@ function getAcgmRecordKey(f){
 
 function loadAcgmAuditStateLocal(){
  try{acgmAuditCats=JSON.parse(localStorage.getItem(ACGM_AUDIT_CATS_KEY)||'[]')||[];}catch{acgmAuditCats=[];}
+ try{vestaAuditCats=JSON.parse(localStorage.getItem(VESTA_AUDIT_CATS_KEY)||'[]')||[];}catch{vestaAuditCats=[];}
  try{acgmAuditMeta=JSON.parse(localStorage.getItem(ACGM_AUDIT_META_KEY)||'{}')||{};}catch{acgmAuditMeta={};}
 }
 
@@ -10056,8 +10056,11 @@ async function loadAcgmAuditState(){
    sb.from('acgm_auditoria_registros').select('registro_key,categoria_id,observacion,snapshot')
   ]);
   if(!resCats.error && Array.isArray(resCats.data)){
-   acgmAuditCats=resCats.data.map(r=>({id:r.id,name:r.nombre,color:r.color}));
+   const allCats=resCats.data.map(r=>({id:r.id,name:r.nombre,color:r.color}));
+   acgmAuditCats=allCats.filter(c=>!String(c.id).startsWith('vcat_'));
+   vestaAuditCats=allCats.filter(c=>String(c.id).startsWith('vcat_'));
    saveAcgmAuditCatsLocal();
+   saveVestaAuditCatsLocal();
   }
   let metaRows=resMeta.data;
   if(resMeta.error){
@@ -10080,8 +10083,11 @@ async function loadAcgmAuditState(){
    saveAcgmAuditMetaLocal();
   }
   renderAcgmCatFilterUI();
+  renderVestaCatFilterUI();
   refreshAcgmOfflineViewIfDisconnected();
+  refreshVestaOfflineViewIfDisconnected();
   renderAcgmFacturas();
+  renderVestaRecepciones();
  }catch{}
 }
 
@@ -10164,12 +10170,16 @@ function renderAcgmCatFilterUI(){
 }
 
 function renderAcgmCatManageList(){
+ const isVesta=catModalScope==='vesta';
+ const titleEl=$('acgmCatModal')?.querySelector('h2');
+ if(titleEl)titleEl.textContent=isVesta?'Categorías · Control de movimientos':'Categorías · Compras y gastos Adm.';
+ const list=isVesta?vestaAuditCats:acgmAuditCats;
  const box=$('acgmCatManageList');
- if(!acgmAuditCats.length){
+ if(!list.length){
   box.innerHTML='<div style="font-size:12px;color:var(--muted)">No hay categorías creadas todavía.</div>';
   return;
  }
- box.innerHTML='<div style="font-size:11.5px;font-weight:800;color:var(--muted);margin-bottom:6px">CATEGORÍAS EXISTENTES</div>'+acgmAuditCats.map(c=>`
+ box.innerHTML='<div style="font-size:11.5px;font-weight:800;color:var(--muted);margin-bottom:6px">CATEGORÍAS EXISTENTES</div>'+list.map(c=>`
   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)">
    <div style="display:flex;align-items:center;gap:8px">
     <span class="acgmCatDot" style="background:${esc(c.color)}"></span>
@@ -10181,19 +10191,27 @@ function renderAcgmCatManageList(){
  box.querySelectorAll('[data-del-acat]').forEach(btn=>{
   btn.addEventListener('click',async()=>{
    const id=btn.dataset.delAcat;
-   acgmAuditCats=acgmAuditCats.filter(c=>c.id!==id);
-   acgmSelectedCatIds.delete(id);
+   if(isVesta){
+    vestaAuditCats=vestaAuditCats.filter(c=>c.id!==id);
+    vestaSelectedCatIds.delete(id);
+    saveVestaAuditCatsLocal();
+   }else{
+    acgmAuditCats=acgmAuditCats.filter(c=>c.id!==id);
+    acgmSelectedCatIds.delete(id);
+    saveAcgmAuditCatsLocal();
+   }
    Object.keys(acgmAuditMeta).forEach(k=>{
     if(acgmAuditMeta[k]?.catId===id)acgmAuditMeta[k].catId='';
    });
-   saveAcgmAuditCatsLocal();
    saveAcgmAuditMetaLocal();
    if(typeof sb!=='undefined' && sb){
     sb.from('acgm_auditoria_categorias').delete().eq('id',id).then(()=>{}).catch(()=>{});
    }
    renderAcgmCatManageList();
    renderAcgmCatFilterUI();
+   renderVestaCatFilterUI();
    renderAcgmFacturas();
+   renderVestaRecepciones();
   });
  });
 }
@@ -10677,6 +10695,7 @@ $('aCatFilterBtn').addEventListener('click',e=>{
 
 $('aAddCatBtn').addEventListener('click',()=>{
  $('aCatFilterPopover').hidden=true;
+ catModalScope='acgm';
  renderAcgmCatManageList();
  show('acgmCatModal');
  setTimeout(()=>$('acgmCatNameInput').focus(),50);
@@ -10697,16 +10716,25 @@ $('acgmCatCreateBtn').addEventListener('click',()=>{
  const name=$('acgmCatNameInput').value.trim();
  const color=$('acgmCatColorInput').value||'#0f766e';
  if(!name){$('acgmCatNameInput').focus();return;}
- const newCat={id:'cat_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6),name,color};
- acgmAuditCats.push(newCat);
- saveAcgmAuditCatsLocal();
+ const isVesta=catModalScope==='vesta';
+ const prefix=isVesta?'vcat_':'cat_';
+ const newCat={id:prefix+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6),name,color};
+ if(isVesta){
+  vestaAuditCats.push(newCat);
+  saveVestaAuditCatsLocal();
+ }else{
+  acgmAuditCats.push(newCat);
+  saveAcgmAuditCatsLocal();
+ }
  if(typeof sb!=='undefined' && sb){
   sb.from('acgm_auditoria_categorias').insert({id:newCat.id,nombre:newCat.name,color:newCat.color}).then(()=>{}).catch(()=>{});
  }
  $('acgmCatNameInput').value='';
  renderAcgmCatManageList();
  renderAcgmCatFilterUI();
+ renderVestaCatFilterUI();
  renderAcgmFacturas();
+ renderVestaRecepciones();
 });
 
 $('acgmCatNameInput').addEventListener('keydown',e=>{
@@ -10735,6 +10763,8 @@ $('aDetAuditObsSaveBtn').addEventListener('click',()=>{
  if(el)el.addEventListener('click',e=>{if(e.target===el)hide(id);});
 });
 
+if($('vSearch'))$('vSearch').addEventListener('input',renderVestaRecepciones);
+
 if($('vCatAllBtn'))$('vCatAllBtn').addEventListener('click',()=>{
  vestaSelectedCatIds.clear();
  $('vCatFilterPopover').hidden=true;
@@ -10751,6 +10781,7 @@ if($('vCatFilterBtn'))$('vCatFilterBtn').addEventListener('click',e=>{
 
 if($('vAddCatBtn'))$('vAddCatBtn').addEventListener('click',()=>{
  $('vCatFilterPopover').hidden=true;
+ catModalScope='vesta';
  renderAcgmCatManageList();
  show('acgmCatModal');
  setTimeout(()=>$('acgmCatNameInput').focus(),50);
