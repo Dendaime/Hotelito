@@ -670,10 +670,10 @@ input::placeholder{color:#9aa8ad}
   </button>
   <button type="button" class="sideDrawerItem" id="drawerTabRecuentos" data-drawer-view="recuentos" hidden>
    <span class="sideDrawerItemLeft"><span>📋</span><span>Recuentos físicos</span></span>
-  </button>
-  <button type="button" class="sideDrawerItem" id="drawerTabPrealtas" data-drawer-view="prealtas" hidden>
-   <span class="sideDrawerItemLeft"><span>✨</span><span>Pre-altas pendientes</span></span>
    <span class="badgeCount" id="drawerPrealtasBadge" hidden>0</span>
+  </button>
+  <button type="button" class="sideDrawerItem" id="drawerTabPrealtas" data-drawer-view="prealtas" hidden style="display:none!important">
+   <span class="sideDrawerItemLeft"><span>✨</span><span>Pre-altas pendientes</span></span>
   </button>
   <button type="button" class="sideDrawerItem" id="drawerTabMovimientos" data-drawer-view="movimientos" hidden>
    <span class="sideDrawerItemLeft"><span>📥</span><span>Control de movimientos</span></span>
@@ -842,6 +842,12 @@ input::placeholder{color:#9aa8ad}
 
   <!-- VISTA 2: RECUENTOS FÍSICOS -->
   <div id="viewRecuentos" hidden>
+   <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    <button type="button" class="subNavTab active" id="recSubListBtn">📋 Recuentos físicos</button>
+    <button type="button" class="subNavTab" id="recSubPrealtasBtn" style="display:inline-flex;align-items:center;gap:6px">
+     ✨ Pre-altas pendientes <span class="badgeCount" id="recPrealtasBadge" hidden>0</span>
+    </button>
+   </div>
    <div id="recuentosListPanel">
     <div class="card mobileCollapsed" id="newRecuentoCard">
      <h2 class="desktopOnlyTitle">Nuevo recuento físico</h2>
@@ -1093,8 +1099,14 @@ input::placeholder{color:#9aa8ad}
    </div>
   </div>
 
-  <!-- VISTA 3: BANDEJA DE PRE-ALTAS PENDIENTES -->
+  <!-- VISTA 3: BANDEJA DE PRE-ALTAS PENDIENTES (SUB-VISTA DE RECUENTOS) -->
   <div id="viewPrealtas" hidden>
+   <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    <button type="button" class="subNavTab" id="prealtasBackRecBtn">📋 Recuentos físicos</button>
+    <button type="button" class="subNavTab active" style="display:inline-flex;align-items:center;gap:6px">
+     ✨ Pre-altas pendientes <span class="badgeCount" id="recPrealtasBadge2" hidden>0</span>
+    </button>
+   </div>
    <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
      <div>
@@ -2929,7 +2941,7 @@ function switchView(view){
  $('tabMovimientos').classList.toggle('active',view==='movimientos');
  $('tabCompras').classList.toggle('active',view==='compras');
  $('drawerTabCatalogo').classList.toggle('active',view==='catalogo');
- $('drawerTabRecuentos').classList.toggle('active',view==='recuentos');
+ $('drawerTabRecuentos').classList.toggle('active',view==='recuentos'||view==='prealtas');
  $('drawerTabPrealtas').classList.toggle('active',view==='prealtas');
  $('drawerTabPlanificacion').classList.toggle('active',view==='planificacion');
  $('drawerTabMovimientos').classList.toggle('active',view==='movimientos');
@@ -4089,6 +4101,9 @@ async function refreshPendingPrealtasBadge(){
    $('drawerPrealtasBadge').textContent=n;
    $('drawerPrealtasBadge').hidden=n===0;
   }
+  ['recPrealtasBadge','recPrealtasBadge2'].forEach(id=>{
+   if($(id)){$(id).textContent=n;$(id).hidden=n===0;}
+  });
  }catch{}
 }
 
@@ -7967,6 +7982,8 @@ $('sideDrawerBackdrop').addEventListener('click',closeSideDrawer);
 $('drawerTabCatalogo').addEventListener('click',()=>switchView('catalogo'));
 $('drawerTabRecuentos').addEventListener('click',()=>switchView('recuentos'));
 $('drawerTabPrealtas').addEventListener('click',()=>switchView('prealtas'));
+if($('recSubPrealtasBtn'))$('recSubPrealtasBtn').addEventListener('click',()=>switchView('prealtas'));
+if($('prealtasBackRecBtn'))$('prealtasBackRecBtn').addEventListener('click',()=>switchView('recuentos'));
 $('drawerTabPlanificacion').addEventListener('click',()=>switchView('planificacion'));
 
 $('openNewBucketModalBtn').addEventListener('click',()=>openBucketModal(null));
