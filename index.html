@@ -9609,6 +9609,7 @@ async function loadAcgmFacturas(){
    acgmFacturasRaw=resOne.rows;
    acgmTotalServer=resOne.total;
   }
+  backfillAcgmAuditSnapshots(acgmFacturasRaw);
   populateAcgmFilters();
   renderAcgmFacturas();
  }catch(e){
@@ -9687,6 +9688,24 @@ function buildAcgmRecordSnapshot(f){
   autorizado_por:f.autorizado_por||'',
   observacion:f.observacion||''
  };
+}
+
+function backfillAcgmAuditSnapshots(rows){
+ if(!Array.isArray(rows) || !rows.length)return;
+ let changed=false;
+ rows.forEach(f=>{
+  const key=getAcgmRecordKey(f);
+  const meta=acgmAuditMeta[key];
+  if(!meta || (!meta.catId && !(meta.obs && meta.obs.trim())))return;
+  const nextSnap=buildAcgmRecordSnapshot(f);
+  const prevSnap=meta.snapshot;
+  if(!prevSnap || prevSnap.estado!==nextSnap.estado || prevSnap.nro_factura!==nextSnap.nro_factura || prevSnap.monto_facturado!==nextSnap.monto_facturado){
+   meta.snapshot=nextSnap;
+   changed=true;
+   syncAcgmRecordMetaToServer(key);
+  }
+ });
+ if(changed)saveAcgmAuditMetaLocal();
 }
 
 function getOfflineControlledAcgmRows(){
