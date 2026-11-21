@@ -9609,6 +9609,7 @@ async function loadAcgmFacturas(){
    acgmFacturasRaw=resOne.rows;
    acgmTotalServer=resOne.total;
   }
+  saveAcgmLastCache(acgmFacturasRaw);
   backfillAcgmAuditSnapshots(acgmFacturasRaw);
   populateAcgmFilters();
   renderAcgmFacturas();
@@ -9708,29 +9709,58 @@ function backfillAcgmAuditSnapshots(rows){
  if(changed)saveAcgmAuditMetaLocal();
 }
 
+const ACGM_LAST_CACHE_KEY='hotelito_acgm_last_cache';
+
+function saveAcgmLastCache(rows){
+ if(!Array.isArray(rows) || !rows.length)return;
+ try{
+  const snaps=rows.map(buildAcgmRecordSnapshot).filter(Boolean);
+  localStorage.setItem(ACGM_LAST_CACHE_KEY,JSON.stringify({savedAt:new Date().toISOString(),rows:snaps}));
+ }catch{}
+}
+
+function loadAcgmLastCache(){
+ try{
+  const raw=localStorage.getItem(ACGM_LAST_CACHE_KEY);
+  if(!raw)return {savedAt:null,rows:[]};
+  const parsed=JSON.parse(raw);
+  return {savedAt:parsed?.savedAt||null,rows:Array.isArray(parsed?.rows)?parsed.rows:[]};
+ }catch{return {savedAt:null,rows:[]};}
+}
+
 function getOfflineControlledAcgmRows(){
- return Object.entries(acgmAuditMeta)
+ const byKey=new Map();
+ const cached=loadAcgmLastCache();
+ cached.rows.forEach(r=>{
+  const key=getAcgmRecordKey(r);
+  if(key)byKey.set(key,{...r,_offlineSnapshot:true});
+ });
+ Object.entries(acgmAuditMeta)
   .filter(([,m])=>m && (m.catId || (m.obs && m.obs.trim())))
-  .map(([key,m])=>{
-   if(m.snapshot)return {...m.snapshot,_offlineSnapshot:true};
-   return {
-    id_factura:key,
-    nro_factura:`ID ${key}`,
-    nro_acgm:null,
-    _tipoOrigen:'solicitud',
-    fecha_creacion:'',
-    nombre_empresa:'Sin sincronizar',
-    nombre_rubro:'—',
-    nombre_proveedor:'Registro controlado (sin caché)',
-    cuit:'—',
-    monto_facturado:0,
-    monto_pagar:0,
-    monto_retencion:0,
-    estado:'—',
-    _offlineSnapshot:true
-   };
-  })
-  .sort((a,b)=>String(b.fecha_creacion||'').localeCompare(String(a.fecha_creacion||'')));
+  .forEach(([key,m])=>{
+   if(byKey.has(key))return;
+   if(m.snapshot){
+    byKey.set(key,{...m.snapshot,_offlineSnapshot:true});
+   }else{
+    byKey.set(key,{
+     id_factura:key,
+     nro_factura:`ID ${key}`,
+     nro_acgm:null,
+     _tipoOrigen:'solicitud',
+     fecha_creacion:'',
+     nombre_empresa:'Sin sincronizar',
+     nombre_rubro:'—',
+     nombre_proveedor:'Registro controlado (sin caché)',
+     cuit:'—',
+     monto_facturado:0,
+     monto_pagar:0,
+     monto_retencion:0,
+     estado:'—',
+     _offlineSnapshot:true
+    });
+   }
+  });
+ return [...byKey.values()].sort((a,b)=>String(b.fecha_creacion||'').localeCompare(String(a.fecha_creacion||'')));
 }
 
 function refreshAcgmOfflineViewIfDisconnected(){
@@ -9741,9 +9771,11 @@ function refreshAcgmOfflineViewIfDisconnected(){
  acgmTotalServer=rows.length;
  updateAcgmAuthUI();
  if(rows.length){
+  const cached=loadAcgmLastCache();
+  const when=cached.savedAt?` · act. ${formatAcgmDateTime(cached.savedAt)}`:'';
   populateAcgmFilters();
   renderAcgmFacturas();
-  $('aCountLabel').textContent=`${rows.length} registro(s) controlados / observados (sin conexión ACGM)`;
+  $('aCountLabel').textContent=`${rows.length} registro(s) en caché local (sin conexión ACGM${when})`;
  }
 }
 
