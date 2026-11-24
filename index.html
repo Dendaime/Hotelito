@@ -1950,6 +1950,24 @@ input::placeholder{color:#9aa8ad}
  </div>
 </div>
 
+<div id="photoSubtitleModal" class="overlay">
+ <div class="dialog" style="max-width:440px">
+  <button class="secondary closeDialog" data-close="photoSubtitleModal">Cerrar</button>
+  <h2>Agregar fotografía</h2>
+  <p id="photoSubtitleArticleLabel" style="font-size:13px;color:var(--muted);margin-bottom:10px"></p>
+  <div style="text-align:center;margin-bottom:12px">
+   <img id="photoSubtitlePreview" alt="Vista previa" style="max-width:100%;max-height:220px;border-radius:10px;border:1px solid var(--line);object-fit:contain;display:none;margin:0 auto">
+  </div>
+  <label for="photoSubtitleInput">Subtítulo (opcional)</label>
+  <input id="photoSubtitleInput" maxlength="120" placeholder="Ej. Depósito 2, Estante B">
+  <div class="dialogActions">
+   <button class="secondary" data-close="photoSubtitleModal">Cancelar</button>
+   <button id="photoSubtitleConfirmBtn">Subir fotografía</button>
+  </div>
+  <p id="photoSubtitleError" class="error"></p>
+ </div>
+</div>
+
 <input id="existingParcialPhotoInput" type="file" accept="image/*" capture="environment" hidden>
 
 <div id="loginModal" class="overlay">
@@ -2079,8 +2097,20 @@ const SUPABASE_PUBLISHABLE_KEY='sb_publishable_EiVJkq-qvzyaKXiTclfY7w_YU4T6fbr';
 let sb=null, all=[], filtered=[], page=1, pageSize=25;
 let selectedCategories=new Set(), selectedPhotoStates=new Set();
 let activeColFilterType=null, tempColFilterSet=new Set();
-let currentUser=null, isEditor=false, editingCode=null, selectedArticle=null;
+let currentUser=null, isEditor=false, editorRole='admin', editingCode=null, selectedArticle=null;
 let activeView='planificacion', hasInitialEditorLanding=false, recuentos=[], activeRecuento=null;
+
+function isAuditoriaServicios(){
+ return isEditor && editorRole==='auditoria_servicios';
+}
+function canManageCatalog(){
+ return isEditor && !isAuditoriaServicios();
+}
+function canEditRecuento(rec){
+ if(!isEditor||!rec)return false;
+ if(!isAuditoriaServicios())return true;
+ return !!(currentUser && rec.creado_por && rec.creado_por===currentUser.id);
+}
 let selectedRecuentoIds=new Set();
 let workRecuentoArticulos=[], workParciales=[], workPrealtas=[], workFotos=[], signedFotoUrls={};
 const REC_REF_STORAGE_KEY='hotelito_recuento_refs';
@@ -3047,6 +3077,7 @@ function closeSideDrawer(){
 
 function switchView(view){
  if(!isEditor)view='catalogo';
+ else if(isAuditoriaServicios() && view!=='catalogo' && view!=='recuentos')view='catalogo';
  activeView=view;
  $('tabCatalogo').classList.toggle('active',view==='catalogo');
  $('tabRecuentos').classList.toggle('active',view==='recuentos');
@@ -3075,21 +3106,31 @@ function switchView(view){
 }
 
 function applyEditorUiState(){
+ const isAudit=isAuditoriaServicios();
+ const canCat=canManageCatalog();
+
  $('editorAccess').hidden=isEditor;
  $('logout').hidden=!isEditor;
  if($('drawerLogoutBtn'))$('drawerLogoutBtn').hidden=!isEditor;
  $('viewCatalogo').classList.toggle('editorActive',isEditor);
  $('mainNav').hidden=!isEditor;
+ $('tabPrealtas').hidden=!canCat;
+ $('tabPlanificacion').hidden=!canCat;
+ $('tabMovimientos').hidden=!canCat;
+ $('tabCompras').hidden=!canCat;
  $('drawerTabRecuentos').hidden=!isEditor;
- $('drawerTabPrealtas').hidden=!isEditor;
- $('drawerTabPlanificacion').hidden=!isEditor;
- $('drawerTabMovimientos').hidden=!isEditor;
- $('drawerTabCompras').hidden=!isEditor;
- $('drawerExternalConns').hidden=!isEditor;
- if(isEditor){loadVestaSession();updateVestaAuthUI();loadAcgmSession();updateAcgmAuthUI();}
- $('drawerModeLabel').textContent=isEditor?'Modo editor habilitado':'Modo consulta pública';
- $('newArticle').hidden=!isEditor;
- $('loadPhotosWrap').hidden=!isEditor;
+ $('drawerTabPrealtas').hidden=!canCat;
+ $('drawerTabPlanificacion').hidden=!canCat;
+ $('drawerTabMovimientos').hidden=!canCat;
+ $('drawerTabCompras').hidden=!canCat;
+ $('drawerExternalConns').hidden=!canCat;
+ if($('recSubPrealtasBtn'))$('recSubPrealtasBtn').hidden=!canCat;
+ if(canCat){loadVestaSession();updateVestaAuthUI();loadAcgmSession();updateAcgmAuthUI();}
+ $('drawerModeLabel').textContent=isAudit
+  ?'Auditoría de servicios'
+  :(isEditor?'Modo editor habilitado':'Modo consulta pública');
+ $('newArticle').hidden=!canCat;
+ $('loadPhotosWrap').hidden=!canCat;
  $('downloadAllZipBtn').hidden=!isEditor;
  $('loadPhotosMenu').classList.remove('show');
 
@@ -3099,16 +3140,20 @@ function applyEditorUiState(){
   switchView('catalogo');
  }else if(!hasInitialEditorLanding){
   hasInitialEditorLanding=true;
-  switchView('planificacion');
+  switchView(isAudit?'catalogo':'planificacion');
+ }else if(isAudit && activeView!=='catalogo' && activeView!=='recuentos'){
+  switchView('catalogo');
  }
 
  if(currentUser&&!isEditor){
   $('connection').textContent='Cuenta sin permisos';
   $('connection').style.color='var(--warn)';
  }else{
-  $('connection').textContent=isEditor
-   ?(navigator.onLine?'Editor conectado':'Editor (Offline)')
-   :(navigator.onLine?'Consulta pública':'Consulta (Offline)');
+  $('connection').textContent=isAudit
+   ?(navigator.onLine?'Auditoría conectada':'Auditoría (Offline)')
+   :(isEditor
+    ?(navigator.onLine?'Editor conectado':'Editor (Offline)')
+    :(navigator.onLine?'Consulta pública':'Consulta (Offline)'));
   $('connection').style.color=navigator.onLine?'var(--accent2)':'var(--warn)';
  }
 }
@@ -3135,15 +3180,17 @@ async function connect(){
   currentUser=session?.user||null;
 
   // Arranque instantáneo desde IndexedDB si ya hay caché local
-  const [cachedAll,cachedEd]=await Promise.all([
+  const [cachedAll,cachedEd,cachedRole]=await Promise.all([
    idbGet('kv','catalogo_all'),
-   currentUser?idbGet('kv',`editor_flag_${currentUser.id}`):Promise.resolve(false)
+   currentUser?idbGet('kv',`editor_flag_${currentUser.id}`):Promise.resolve(false),
+   currentUser?idbGet('kv',`editor_role_${currentUser.id}`):Promise.resolve('admin')
   ]);
 
   let instantBooted=false;
   if((Array.isArray(cachedAll) && cachedAll.length) || (currentUser && cachedEd)){
    all=Array.isArray(cachedAll)?cachedAll:[];
    isEditor=!!(currentUser && cachedEd);
+   editorRole=isEditor?(cachedRole||'admin'):'admin';
    writeSavedCfg({url,key});
    $('config').hidden=true;
    $('workspace').hidden=false;
@@ -3191,38 +3238,46 @@ async function connect(){
 async function loadData(opts={}){
  try{
   const prevIsEditor=isEditor;
+  const prevRole=editorRole;
   let nextIsEditor=false;
+  let nextRole='admin';
 
   if(currentUser){
    if(navigator.onLine){
     try{
      const {data:allowed,error:roleErr}=await sb
       .from('editores')
-      .select('id')
+      .select('id,rol')
       .eq('id',currentUser.id)
       .eq('activo',true)
       .maybeSingle();
 
      if(!roleErr){
       nextIsEditor=!!allowed;
+      nextRole=(allowed && allowed.rol)?String(allowed.rol).trim():'admin';
       idbPut('kv',nextIsEditor,`editor_flag_${currentUser.id}`).catch(()=>{});
+      idbPut('kv',nextRole,`editor_role_${currentUser.id}`).catch(()=>{});
      }else{
       nextIsEditor=!!(await idbGet('kv',`editor_flag_${currentUser.id}`));
+      nextRole=(await idbGet('kv',`editor_role_${currentUser.id}`))||'admin';
      }
     }catch{
      nextIsEditor=!!(await idbGet('kv',`editor_flag_${currentUser.id}`));
+     nextRole=(await idbGet('kv',`editor_role_${currentUser.id}`))||'admin';
     }
    }else{
     nextIsEditor=!!(await idbGet('kv',`editor_flag_${currentUser.id}`));
+    nextRole=(await idbGet('kv',`editor_role_${currentUser.id}`))||'admin';
    }
   }
   isEditor=nextIsEditor;
+  editorRole=nextIsEditor?nextRole:'admin';
 
   if(navigator.onLine){
    try{
     const query=sb
      .from('articulos')
-     .select('codigo,descripcion,categoria,verificacion_foto,foto_archivo,activo,actualizado_en')
+     .select('codigo,descripcion,categoria,verificacion_foto,foto_archivo,activo,actualizado_en,observacion')
      .order('codigo')
      .limit(3000);
 
@@ -3245,11 +3300,13 @@ async function loadData(opts={}){
 
   applyEditorUiState();
 
-  if(!opts.background || prevIsEditor!==isEditor){
+  if(!opts.background || prevIsEditor!==isEditor || prevRole!==editorRole){
    const tn=$('topNotice');
-   tn.textContent=isEditor
-    ?'Modo editor habilitado. Podés administrar la planificación operativa, el catálogo maestro, los recuentos físicos y las pre-altas.'
-    :'Consulta pública habilitada. Para administrar la planificación, artículos o fotografías, ingresá con una cuenta de editor autorizada.';
+   tn.textContent=isAuditoriaServicios()
+    ?'Sesión de Auditoría de servicios habilitada. Podés consultar el catálogo maestro, agregar observaciones/fotografías y gestionar tus propios recuentos físicos.'
+    :(isEditor
+     ?'Modo editor habilitado. Podés administrar la planificación operativa, el catálogo maestro, los recuentos físicos y las pre-altas.'
+     :'Consulta pública habilitada. Para administrar la planificación, artículos o fotografías, ingresá con una cuenta de editor autorizada.');
    tn.hidden=false;
    clearTimeout(window._topNoticeTimer);
    window._topNoticeTimer=setTimeout(()=>{tn.hidden=true;},4000);
@@ -3261,16 +3318,16 @@ async function loadData(opts={}){
 
   if(isEditor){
    if(navigator.onLine){
-    Promise.allSettled([
-     processSyncQueues(false),
-     refreshPendingPrealtasBadge(),
-     refreshPlannerBadge()
-    ]);
+    const bgTasks=[processSyncQueues(false)];
+    if(canManageCatalog()){
+     bgTasks.push(refreshPendingPrealtasBadge(),refreshPlannerBadge());
+    }
+    Promise.allSettled(bgTasks);
    }
    if(!opts.background){
     if(activeView==='recuentos')loadRecuentos();
-    if(activeView==='prealtas')loadPrealtasInbox();
-    if(activeView==='planificacion')loadPlannerModule();
+    if(activeView==='prealtas' && canManageCatalog())loadPrealtasInbox();
+    if(activeView==='planificacion' && canManageCatalog())loadPlannerModule();
    }
   }
 
@@ -3545,13 +3602,32 @@ async function showDetail(a){
  selectedArticle=a;
  $('detailTitle').textContent=a.descripcion;
 
+ const obsVal=(a.observacion||'').trim();
+ const obsFieldHtml=isEditor
+  ? `<div class="field" style="grid-column:1/-1">
+      <small>OBSERVACIÓN</small>
+      <textarea id="detailObsInput" rows="2" maxlength="500" placeholder="Agregar observación para este artículo…" style="width:100%;margin-top:4px;resize:vertical">${esc(a.observacion||'')}</textarea>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+       <button type="button" class="secondary sm" id="saveDetailObsBtn">Guardar observación</button>
+       <span id="detailObsStatus" style="font-size:12px;color:var(--muted)"></span>
+      </div>
+     </div>`
+  : (obsVal
+     ? `<div class="field" style="grid-column:1/-1"><small>OBSERVACIÓN</small><strong style="white-space:pre-wrap">${esc(obsVal)}</strong></div>`
+     : '');
+
  $('detailFields').innerHTML=`
   <div class="field"><small>CÓDIGO</small><strong class="code">${esc(a.codigo)}</strong></div>
   <div class="field"><small>DESCRIPCIÓN</small><strong>${esc(a.descripcion)}</strong></div>
   <div class="field"><small>CATEGORÍA</small><strong>${esc(a.categoria||'—')}</strong></div>
   <div class="field"><small>VERIFICACIÓN DE FOTO</small>${pill(a)}</div>
   ${a.activo===false?'<div class="field"><small>ESTADO</small><strong>Inactivo</strong></div>':''}
+  ${obsFieldHtml}
  `;
+
+ if(isEditor && $('saveDetailObsBtn')){
+  $('saveDetailObsBtn').onclick=()=>saveArticleObservacion(a);
+ }
 
  const im=$('detailPhoto');
  im.style.display='block';
@@ -3565,23 +3641,28 @@ async function showDetail(a){
  if(actions)actions.remove();
 
  if(isEditor){
+  const canCat=canManageCatalog();
   const box=document.createElement('div');
   box.id='adminDetailActions';
   box.className='adminActions';
 
-  box.innerHTML=`
-   <button id="editSelected">Modificar datos</button>
-   <button class="secondary" id="photoSelected">${photoState(a)==='yes'?'Agregar fotografía':'Cargar fotografía'}</button>
-   <button class="secondary" id="removePhoto">Quitar todas las fotos</button>
-   <button class="danger" id="deleteSelected">Eliminar definitivamente</button>
-  `;
+  box.innerHTML=canCat
+   ? `
+    <button id="editSelected">Modificar datos</button>
+    <button class="secondary" id="photoSelected">${photoState(a)==='yes'?'Agregar fotografía':'Cargar fotografía'}</button>
+    <button class="secondary" id="removePhoto">Quitar todas las fotos</button>
+    <button class="danger" id="deleteSelected">Eliminar definitivamente</button>
+   `
+   : `
+    <button class="secondary" id="photoSelected">${photoState(a)==='yes'?'Agregar fotografía':'Cargar fotografía'}</button>
+   `;
 
   $('detailFields').appendChild(box);
 
-  $('editSelected').onclick=()=>openEdit(a);
-  $('photoSelected').onclick=()=>$('singlePhoto').click();
-  $('removePhoto').onclick=()=>removePhoto(a);
-  $('deleteSelected').onclick=()=>deleteArticle(a);
+  if($('editSelected'))$('editSelected').onclick=()=>openEdit(a);
+  if($('photoSelected'))$('photoSelected').onclick=()=>$('singlePhoto').click();
+  if($('removePhoto'))$('removePhoto').onclick=()=>removePhoto(a);
+  if($('deleteSelected'))$('deleteSelected').onclick=()=>deleteArticle(a);
  }
 
  $('detailGallerySection').hidden=true;
@@ -3592,7 +3673,7 @@ async function showDetail(a){
   try{
    const {data:galRows,error}=await sb
     .from('articulo_fotografias')
-    .select('id,articulo_codigo,archivo,origen,descripcion_origen,creado_en')
+    .select('id,articulo_codigo,archivo,origen,descripcion_origen,subtitulo,creado_en')
     .eq('articulo_codigo',a.codigo)
     .order('creado_en',{ascending:true});
 
@@ -3606,7 +3687,8 @@ async function showDetail(a){
       articulo_codigo:a.codigo,
       archivo:legacyRoot,
       origen:'catalogo',
-      descripcion_origen:'Foto principal original del catálogo'
+      descripcion_origen:'Foto principal original del catálogo',
+      subtitulo:''
      });
     }
     if(a.foto_archivo && !list.some(x=>x.archivo===a.foto_archivo)){
@@ -3615,7 +3697,8 @@ async function showDetail(a){
       articulo_codigo:a.codigo,
       archivo:a.foto_archivo,
       origen:'catalogo',
-      descripcion_origen:'Carga directa en catálogo'
+      descripcion_origen:'Carga directa en catálogo',
+      subtitulo:''
      });
     }
 
@@ -3626,15 +3709,19 @@ async function showDetail(a){
      $('detailGalleryStrip').innerHTML=list.map(g=>{
       const isMaster=(activeMaster===g.archivo);
       const url=imageUrl(g.archivo);
-      const shortLabel=g.origen==='recuento'
-       ? (g.descripcion_origen||'Recuento').replace(/^Recuento:\s*/i,'').split('·')[0].trim()
-       : 'Catálogo';
+      const sub=(g.subtitulo||'').trim();
+      const shortLabel=sub
+       ? sub
+       : (g.origen==='recuento'
+          ? (g.descripcion_origen||'Recuento').replace(/^Recuento:\s*/i,'').split('·')[0].trim()
+          : 'Catálogo');
       return `
        <div class="galleryCard ${isMaster?'isMaster':''}"
             data-gal-id="${esc(g.id||'')}"
             data-gal-archivo="${esc(g.archivo)}"
             data-gal-desc="${esc(g.descripcion_origen||'Carga directa en catálogo')}"
-            title="${esc(g.descripcion_origen||'Catálogo')}">
+            data-gal-sub="${esc(sub)}"
+            title="${esc(sub || g.descripcion_origen || 'Catálogo')}">
         ${isMaster?'<span class="galleryStarBadge" title="Miniatura principal">★</span>':''}
         <img src="${esc(url)}" alt="Foto">
         <small>${esc(shortLabel)}</small>
@@ -3647,19 +3734,24 @@ async function showDetail(a){
        const galId=card.dataset.galId||null;
        const archivo=card.dataset.galArchivo;
        const descOrigen=card.dataset.galDesc;
+       const sub=card.dataset.galSub||'';
        const url=imageUrl(archivo);
        const isAlreadyMaster=(activeMaster===archivo);
        const promoteCtx=(isEditor && !isAlreadyMaster)
         ? {mode:'gallery',articulo:a,masterPath:archivo}
         : null;
-       const deleteCtx=isEditor
+       const deleteCtx=canManageCatalog()
         ? {articulo:a,galId,archivo}
         : null;
+       const captionParts=[];
+       if(isAlreadyMaster)captionParts.push('★ Miniatura principal');
+       if(sub)captionParts.push(sub);
+       captionParts.push(`Origen: ${descOrigen}`);
        openImageZoom(
         url,
         `${a.codigo} · ${a.descripcion}`,
         promoteCtx,
-        `${isAlreadyMaster?'★ Miniatura principal · ':''}Origen: ${descOrigen}`,
+        captionParts.join(' · '),
         deleteCtx
        );
       };
@@ -3672,7 +3764,49 @@ async function showDetail(a){
  }
 }
 
+async function saveArticleObservacion(a){
+ if(!isEditor||!a)return;
+ if(!navigator.onLine){
+  alert('Necesitás conexión a internet para guardar la observación.');
+  return;
+ }
+ const input=$('detailObsInput');
+ const btn=$('saveDetailObsBtn');
+ const status=$('detailObsStatus');
+ if(!input||!btn)return;
+
+ const observacion=input.value.trim();
+ btn.disabled=true;
+ if(status){status.textContent='Guardando…';status.style.color='var(--muted)';}
+
+ try{
+  const nowIso=new Date().toISOString();
+  const {error}=await sb.from('articulos')
+   .update({observacion,actualizado_en:nowIso})
+   .eq('codigo',a.codigo);
+  if(error)throw error;
+
+  a.observacion=observacion;
+  a.actualizado_en=nowIso;
+  const idx=all.findIndex(x=>x.codigo===a.codigo);
+  if(idx>=0){
+   all[idx].observacion=observacion;
+   all[idx].actualizado_en=nowIso;
+  }
+  idbPut('kv',all,'catalogo_all').catch(()=>{});
+
+  if(status){status.textContent='Observación guardada';status.style.color='var(--accent2)';}
+ }catch(e){
+  console.error('Error al guardar observación:',e);
+  if(status){status.textContent='Error al guardar';status.style.color='var(--danger)';}
+  alert('No se pudo guardar la observación: '+(e.message||e));
+ }finally{
+  btn.disabled=false;
+ }
+}
+
 function openEdit(a=null){
+ if(!canManageCatalog())return;
  editingCode=a?.codigo||null;
  $('editHeading').textContent=a?'Modificar artículo':'Nuevo artículo';
  $('editCode').value=a?.codigo||'';
@@ -3684,6 +3818,7 @@ function openEdit(a=null){
 }
 
 async function saveArticle(){
+ if(!canManageCatalog())return;
  const codigo=$('editCode').value.trim().toUpperCase();
  const descripcion=$('editDescription').value.trim();
  const categoria=$('editCategory').value.trim();
@@ -3730,6 +3865,7 @@ async function saveArticle(){
 }
 
 async function deleteArticle(a){
+ if(!canManageCatalog())return;
  const codigo=String(a.codigo);
 
  const confirmar=confirm(
@@ -3808,7 +3944,7 @@ function extOf(file){
  return m?m[1]:null;
 }
 
-async function uploadPhoto(a,file,forceSetAsMaster=false,origen='catalogo',descOrigen='Carga directa en catálogo'){
+async function uploadPhoto(a,file,forceSetAsMaster=false,origen='catalogo',descOrigen='Carga directa en catálogo',subtitulo=''){
  const existingMaster = await ensureExistingMasterRegistered(a.codigo);
  const ext=extOf(file)||'jpg';
  const path=`${a.codigo}/${newUuid()}.${ext}`;
@@ -3825,6 +3961,7 @@ async function uploadPhoto(a,file,forceSetAsMaster=false,origen='catalogo',descO
   archivo:path,
   origen,
   descripcion_origen:descOrigen,
+  subtitulo:(subtitulo||'').trim(),
   creado_por:currentUser?.id||null
  },{onConflict:'articulo_codigo,archivo',ignoreDuplicates:true});
 
@@ -3863,6 +4000,7 @@ async function collectAllStoragePathsForArticle(a){
 }
 
 async function deleteSingleGalleryPhoto(ctx){
+ if(!canManageCatalog())return;
  if(!ctx||!ctx.articulo||!ctx.archivo)return;
  if(!navigator.onLine){
   alert('Necesitás conexión a internet para eliminar la fotografía.');
@@ -3922,6 +4060,7 @@ async function deleteSingleGalleryPhoto(ctx){
 }
 
 async function removePhoto(a){
+ if(!canManageCatalog())return;
  if(!navigator.onLine){
   alert('Necesitás conexión a internet para quitar las fotografías.');
   return;
@@ -4366,7 +4505,7 @@ function updateConsolidateButtonState(){
 
 function renderRecuentos(){
  const list=getFilteredRecuentosList();
- const openVisible=list.filter(r=>r.estado==='abierto'&&!r._offlinePending);
+ const openVisible=list.filter(r=>r.estado==='abierto'&&!r._offlinePending&&canEditRecuento(r));
 
  $('recCount').textContent=`${list.length.toLocaleString('es-AR')} recuentos encontrados`;
  $('recEmpty').hidden=list.length!==0;
@@ -4375,9 +4514,10 @@ function renderRecuentos(){
  $('selectAllRecuentos').checked=openVisible.length>0 && openVisible.every(r=>selectedRecuentoIds.has(r.id));
 
  $('recRows').innerHTML=list.map(r=>{
-  const canConsolidate=r.estado==='abierto' && !r._offlinePending;
+  const canEdit=canEditRecuento(r);
+  const canConsolidate=r.estado==='abierto' && !r._offlinePending && canEdit;
   const checked=canConsolidate && selectedRecuentoIds.has(r.id)?'checked':'';
-  const isOpenRec=r.estado==='abierto';
+  const isOpenRec=r.estado==='abierto' && canEdit;
   const refId=getRecuentoRefId(r.id);
   const refObj=refId?recuentos.find(x=>x.id===refId):null;
   return `
@@ -4421,7 +4561,7 @@ function renderRecuentos(){
    if(chk.checked)selectedRecuentoIds.add(id);
    else selectedRecuentoIds.delete(id);
    updateConsolidateButtonState();
-   const visibleOpen=getFilteredRecuentosList().filter(r=>r.estado==='abierto'&&!r._offlinePending);
+   const visibleOpen=getFilteredRecuentosList().filter(r=>r.estado==='abierto'&&!r._offlinePending&&canEditRecuento(r));
    $('selectAllRecuentos').checked=visibleOpen.length>0 && visibleOpen.every(r=>selectedRecuentoIds.has(r.id));
   });
  });
@@ -4460,7 +4600,7 @@ function renderRecuentos(){
 }
 
 async function deleteOpenRecuento(rec,btnEl=null){
- if(!isEditor||!rec)return;
+ if(!isEditor||!rec||!canEditRecuento(rec))return;
  if(rec.estado!=='abierto'){
   alert('Solo se pueden eliminar recuentos en estado Abierto. Los recuentos consolidados o cerrados están protegidos.');
   return;
@@ -4683,6 +4823,8 @@ async function openRecuentoWork(r){
  const isOpen=r.estado==='abierto';
  const isClosed=r.estado==='cerrado';
  const isConsolidated=r.estado==='consolidado';
+ const canEditThisRec=canEditRecuento(r);
+ const isOpenEditable=isOpen && canEditThisRec;
 
  $('workClosedBanner').hidden=!isClosed;
  $('workConsolidatedBanner').hidden=!isConsolidated;
@@ -4694,11 +4836,11 @@ async function openRecuentoWork(r){
    : `Este recuento ya fue <b>consolidado</b> y quedó en modo de solo lectura. Cualquier modificación debe hacerse sobre el recuento consolidado resultante antes de cerrarlo.`;
  }
 
- $('openNewPrealtaBtn').hidden=!isOpen;
- $('closeRecuentoBtn').hidden=!isOpen;
- $('reopenRecuentoBtn').hidden=!isClosed;
- $('addParcialSection').style.display=isOpen?'grid':'none';
- $('thParcialActions').hidden=!isOpen;
+ $('openNewPrealtaBtn').hidden=!isOpenEditable;
+ $('closeRecuentoBtn').hidden=!isOpenEditable;
+ $('reopenRecuentoBtn').hidden=!(isClosed && canEditThisRec);
+ $('addParcialSection').style.display=isOpenEditable?'grid':'none';
+ $('thParcialActions').hidden=!isOpenEditable;
 
  populateRecuentoRefSelectors();
  await loadWorkReferenceData();
@@ -4732,7 +4874,7 @@ function closeRecuentoWork(){
    CIERRE, REAPERTURA E HISTORIAL DE AUDITORÍA (RPC)
    ========================================================= */
 async function handleCerrarRecuento(){
- if(!activeRecuento||activeRecuento.estado!=='abierto')return;
+ if(!activeRecuento||activeRecuento.estado!=='abierto'||!canEditRecuento(activeRecuento))return;
 
  if(await hasPendingForRecuento(activeRecuento.id)){
   alert('No se puede cerrar el recuento porque aún tiene parciales o fotografías pendientes de sincronización.');
@@ -4771,7 +4913,7 @@ async function handleCerrarRecuento(){
 }
 
 function openReopenRecuentoModal(){
- if(!activeRecuento||activeRecuento.estado!=='cerrado')return;
+ if(!activeRecuento||activeRecuento.estado!=='cerrado'||!canEditRecuento(activeRecuento))return;
  if(!navigator.onLine){
   alert('Necesitás conexión a internet para reabrir un recuento cerrado.');
   return;
@@ -4783,7 +4925,7 @@ function openReopenRecuentoModal(){
 }
 
 async function confirmReopenRecuento(){
- if(!activeRecuento||activeRecuento.estado!=='cerrado')return;
+ if(!activeRecuento||activeRecuento.estado!=='cerrado'||!canEditRecuento(activeRecuento))return;
  const motivo=$('reopenMotivoInput').value.trim();
  $('reopenError').textContent='';
 
@@ -5944,7 +6086,7 @@ function selectRecItem(item){
 
 function renderSelectedRecItem(){
  if(!selectedRecItem)return;
- const isOpen=activeRecuento?.estado==='abierto';
+ const isOpen=activeRecuento?.estado==='abierto' && canEditRecuento(activeRecuento);
  const im=$('selArtPhoto');
  const badge=$('selArtZoomBadge');
  const wrap=$('selArtPhotoWrap');
@@ -6142,7 +6284,7 @@ function renderSelectedRecItem(){
 }
 
 async function addParcial(){
- if(!activeRecuento||activeRecuento.estado!=='abierto'||!selectedRecItem||!currentUser)return;
+ if(!activeRecuento||activeRecuento.estado!=='abierto'||!canEditRecuento(activeRecuento)||!selectedRecItem||!currentUser)return;
 
  $('parcialFormError').textContent='';
  const rawExpr=$('parcialExpr').value.trim();
@@ -8629,6 +8771,7 @@ $('logout').onclick=async()=>{
  await sb.auth.signOut();
  currentUser=null;
  isEditor=false;
+ editorRole='admin';
  activeRecuento=null;
  await loadData();
 };
@@ -9144,26 +9287,74 @@ single.id='singlePhoto';
 single.hidden=true;
 document.body.appendChild(single);
 
-single.onchange=async()=>{
+let pendingSinglePhotoFile=null;
+let pendingSinglePhotoPreviewUrl=null;
+
+function clearPendingSinglePhoto(){
+ pendingSinglePhotoFile=null;
+ if(pendingSinglePhotoPreviewUrl){
+  URL.revokeObjectURL(pendingSinglePhotoPreviewUrl);
+  pendingSinglePhotoPreviewUrl=null;
+ }
+ const prev=$('photoSubtitlePreview');
+ if(prev){prev.src='';prev.style.display='none';}
+}
+
+single.onchange=()=>{
  const f=single.files[0];
  single.value='';
 
  if(!f||!selectedArticle)return;
 
+ clearPendingSinglePhoto();
+ pendingSinglePhotoFile=f;
+ pendingSinglePhotoPreviewUrl=URL.createObjectURL(f);
+
+ $('photoSubtitleArticleLabel').textContent=`${selectedArticle.codigo} · ${selectedArticle.descripcion}`;
+ const prev=$('photoSubtitlePreview');
+ prev.src=pendingSinglePhotoPreviewUrl;
+ prev.style.display='block';
+ $('photoSubtitleInput').value='';
+ $('photoSubtitleError').textContent='';
+ $('photoSubtitleConfirmBtn').disabled=false;
+ show('photoSubtitleModal');
+ setTimeout(()=>$('photoSubtitleInput').focus(),50);
+};
+
+$('photoSubtitleConfirmBtn').onclick=async()=>{
+ if(!pendingSinglePhotoFile||!selectedArticle)return;
+ const btn=$('photoSubtitleConfirmBtn');
+ const subtitulo=$('photoSubtitleInput').value.trim();
+ const fileToUpload=pendingSinglePhotoFile;
+ const targetArticle=selectedArticle;
+
+ btn.disabled=true;
+ $('photoSubtitleError').textContent='';
+
  try{
-  const jpegBlob=await compressImageToJpegBlob(f);
-  const jpegFile=new File([jpegBlob],`${selectedArticle.codigo}.jpg`,{type:'image/jpeg'});
-  await uploadPhoto(selectedArticle,jpegFile,false,'catalogo','Carga directa en catálogo');
+  const jpegBlob=await compressImageToJpegBlob(fileToUpload);
+  const jpegFile=new File([jpegBlob],`${targetArticle.codigo}.jpg`,{type:'image/jpeg'});
+  await uploadPhoto(targetArticle,jpegFile,false,'catalogo','Carga directa en catálogo',subtitulo);
+  clearPendingSinglePhoto();
+  hide('photoSubtitleModal');
   hide('modal');
   await loadData();
 
-  const a=all.find(x=>x.codigo===selectedArticle.codigo);
+  const a=all.find(x=>x.codigo===targetArticle.codigo);
   if(a)await showDetail(a);
 
  }catch(e){
-  alert('No se pudo cargar la foto: '+e.message);
+  $('photoSubtitleError').textContent='No se pudo cargar la foto: '+(e.message||e);
+  btn.disabled=false;
  }
 };
+
+$('photoSubtitleInput').addEventListener('keydown',e=>{
+ if(e.key==='Enter'){
+  e.preventDefault();
+  $('photoSubtitleConfirmBtn').click();
+ }
+});
 
 document.querySelectorAll('[data-close]').forEach(b=>{
  b.onclick=()=>hide(b.dataset.close);
