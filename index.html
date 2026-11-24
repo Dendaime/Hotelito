@@ -100,7 +100,7 @@ tr.item:hover{background:#f0f6f6}
 .pager{display:flex;justify-content:center;align-items:center;gap:12px;padding:16px;color:var(--muted);font-size:12px}
 .empty{padding:36px;text-align:center;color:var(--muted)}
 footer{color:#637780;text-align:center;font-size:11px;padding:25px}
-#modal{position:fixed;inset:0;background:#26363d88;display:none;place-items:center;padding:20px;z-index:5}
+#modal{position:fixed;inset:0;background:#26363d88;display:none;place-items:center;padding:20px;z-index:60}
 #modal.show{display:grid}
 .detail{width:min(800px,100%);max-height:92vh;overflow:auto;padding:20px;position:relative}
 .close{position:absolute;right:15px;top:15px}
@@ -124,7 +124,7 @@ footer{color:#637780;text-align:center;font-size:11px;padding:25px}
 .metric,.toolbar,.tablewrap,.detail,.config,.card{box-shadow:0 3px 14px #26363d0a}
 button:hover{filter:brightness(.97)}
 input::placeholder{color:#9aa8ad}
-.overlay{position:fixed;inset:0;background:#26363d88;display:none;place-items:center;padding:18px;z-index:20}
+.overlay{position:fixed;inset:0;background:#26363d88;display:none;place-items:center;padding:18px;z-index:65}
 .overlay.show{display:grid}
 .dialog{width:min(580px,100%);max-height:90vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px;position:relative;box-shadow:0 15px 55px #26363d33}
 .dialog.wide{width:min(960px,100%)}
@@ -192,7 +192,7 @@ input::placeholder{color:#9aa8ad}
 .chipList{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 4px}
 .chip{background:#edf3f4;border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600}
 .syncTag{display:inline-block;font-size:10px;padding:2px 6px;border-radius:6px;background:#fff3dc;color:#94600b;font-weight:700;margin-left:5px}
-#imageZoomOverlay{z-index:40;background:#10181cd9}
+#imageZoomOverlay{z-index:75;background:#10181cd9}
 .zoomDialog{max-width:min(92vw,860px);width:auto;padding:18px;background:#fff;border-radius:16px;position:relative;text-align:center}
 .zoomImg{max-width:100%;max-height:72vh;object-fit:contain;border-radius:10px;display:block;margin:auto}
 .zoomCaption{margin-top:10px;font-size:13px;color:var(--text);font-weight:600}
