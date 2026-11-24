@@ -3603,31 +3603,32 @@ async function showDetail(a){
  $('detailTitle').textContent=a.descripcion;
 
  const obsVal=(a.observacion||'').trim();
- const obsFieldHtml=isEditor
-  ? `<div class="field" style="grid-column:1/-1">
-      <small>OBSERVACIÓN</small>
-      <textarea id="detailObsInput" rows="2" maxlength="500" placeholder="Agregar observación para este artículo…" style="width:100%;margin-top:4px;resize:vertical">${esc(a.observacion||'')}</textarea>
-      <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
-       <button type="button" class="secondary sm" id="saveDetailObsBtn">Guardar observación</button>
+ const obsDisplayHtml=obsVal
+  ? `<div class="field" id="detailObsDisplay" style="margin-top:8px"><small>OBSERVACIÓN</small><strong id="detailObsText" style="white-space:pre-wrap;font-weight:500">${esc(obsVal)}</strong></div>`
+  : `<div class="field" id="detailObsDisplay" style="margin-top:8px" hidden><small>OBSERVACIÓN</small><strong id="detailObsText" style="white-space:pre-wrap;font-weight:500"></strong></div>`;
+
+ const obsEditorHtml=isEditor
+  ? `<div id="detailObsEditor" style="margin-top:10px" hidden>
+      <textarea id="detailObsInput" rows="2" maxlength="500" placeholder="Escribir observación para este artículo…" style="width:100%;resize:vertical">${esc(a.observacion||'')}</textarea>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap">
+       <button type="button" class="sm" id="saveDetailObsBtn">Guardar</button>
+       <button type="button" class="secondary sm" id="cancelDetailObsBtn">Cancelar</button>
        <span id="detailObsStatus" style="font-size:12px;color:var(--muted)"></span>
       </div>
      </div>`
-  : (obsVal
-     ? `<div class="field" style="grid-column:1/-1"><small>OBSERVACIÓN</small><strong style="white-space:pre-wrap">${esc(obsVal)}</strong></div>`
-     : '');
+  : '';
 
  $('detailFields').innerHTML=`
-  <div class="field"><small>CÓDIGO</small><strong class="code">${esc(a.codigo)}</strong></div>
-  <div class="field"><small>DESCRIPCIÓN</small><strong>${esc(a.descripcion)}</strong></div>
-  <div class="field"><small>CATEGORÍA</small><strong>${esc(a.categoria||'—')}</strong></div>
-  <div class="field"><small>VERIFICACIÓN DE FOTO</small>${pill(a)}</div>
-  ${a.activo===false?'<div class="field"><small>ESTADO</small><strong>Inactivo</strong></div>':''}
-  ${obsFieldHtml}
+  <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px">
+   <div class="field"><small>CÓDIGO</small><strong class="code">${esc(a.codigo)}</strong></div>
+   <div class="field"><small>VERIFICACIÓN DE FOTO</small>${pill(a)}</div>
+   <div class="field"><small>DESCRIPCIÓN</small><strong>${esc(a.descripcion)}</strong></div>
+   <div class="field"><small>CATEGORÍA</small><strong>${esc(a.categoria||'—')}</strong></div>
+   ${a.activo===false?'<div class="field"><small>ESTADO</small><strong>Inactivo</strong></div>':''}
+  </div>
+  ${obsDisplayHtml}
+  ${obsEditorHtml}
  `;
-
- if(isEditor && $('saveDetailObsBtn')){
-  $('saveDetailObsBtn').onclick=()=>saveArticleObservacion(a);
- }
 
  const im=$('detailPhoto');
  im.style.display='block';
@@ -3645,20 +3646,46 @@ async function showDetail(a){
   const box=document.createElement('div');
   box.id='adminDetailActions';
   box.className='adminActions';
+  box.style.alignItems='center';
+  box.style.marginTop='12px';
+
+  const obsBtnLabel=obsVal?'Editar observación':'Agregar observación';
+  const photoBtnLabel=photoState(a)==='yes'?'Agregar fotografía':'Cargar fotografía';
 
   box.innerHTML=canCat
    ? `
+    <button type="button" class="secondary" id="toggleObsBtn">${obsBtnLabel}</button>
     <button id="editSelected">Modificar datos</button>
-    <button class="secondary" id="photoSelected">${photoState(a)==='yes'?'Agregar fotografía':'Cargar fotografía'}</button>
-    <button class="secondary" id="removePhoto">Quitar todas las fotos</button>
-    <button class="danger" id="deleteSelected">Eliminar definitivamente</button>
+    <button class="secondary" id="removePhoto">Quitar fotos</button>
+    <button class="danger" id="deleteSelected">Eliminar</button>
+    <button class="secondary" id="photoSelected" style="margin-left:auto">${photoBtnLabel}</button>
    `
    : `
-    <button class="secondary" id="photoSelected">${photoState(a)==='yes'?'Agregar fotografía':'Cargar fotografía'}</button>
+    <button type="button" class="secondary" id="toggleObsBtn">${obsBtnLabel}</button>
+    <button class="secondary" id="photoSelected" style="margin-left:auto">${photoBtnLabel}</button>
    `;
 
   $('detailFields').appendChild(box);
 
+  if($('toggleObsBtn')){
+   $('toggleObsBtn').onclick=()=>{
+    const ed=$('detailObsEditor');
+    if(!ed)return;
+    const willOpen=ed.hidden;
+    ed.hidden=!willOpen;
+    if(willOpen){
+     const inp=$('detailObsInput');
+     if(inp){inp.value=a.observacion||'';inp.focus();}
+     if($('detailObsStatus'))$('detailObsStatus').textContent='';
+    }
+   };
+  }
+  if($('cancelDetailObsBtn')){
+   $('cancelDetailObsBtn').onclick=()=>{
+    if($('detailObsEditor'))$('detailObsEditor').hidden=true;
+   };
+  }
+  if($('saveDetailObsBtn'))$('saveDetailObsBtn').onclick=()=>saveArticleObservacion(a);
   if($('editSelected'))$('editSelected').onclick=()=>openEdit(a);
   if($('photoSelected'))$('photoSelected').onclick=()=>$('singlePhoto').click();
   if($('removePhoto'))$('removePhoto').onclick=()=>removePhoto(a);
@@ -3795,7 +3822,16 @@ async function saveArticleObservacion(a){
   }
   idbPut('kv',all,'catalogo_all').catch(()=>{});
 
-  if(status){status.textContent='Observación guardada';status.style.color='var(--accent2)';}
+  const disp=$('detailObsDisplay');
+  const txt=$('detailObsText');
+  if(disp && txt){
+   txt.textContent=observacion;
+   disp.hidden=!observacion;
+  }
+  if($('toggleObsBtn')){
+   $('toggleObsBtn').textContent=observacion?'Editar observación':'Agregar observación';
+  }
+  if($('detailObsEditor'))$('detailObsEditor').hidden=true;
  }catch(e){
   console.error('Error al guardar observación:',e);
   if(status){status.textContent='Error al guardar';status.style.color='var(--danger)';}
