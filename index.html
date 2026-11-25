@@ -867,6 +867,13 @@ input::placeholder{color:#9aa8ad}
        <input id="recResponsable" maxlength="120" placeholder="Nombre y apellido del auditor">
       </div>
       <div>
+       <label for="recTipo">Tipo de recuento *</label>
+       <select id="recTipo">
+        <option value="bienes_uso">Bienes de uso</option>
+        <option value="insumos_preelaborados">Insumos / Pre-elaborados</option>
+       </select>
+      </div>
+      <div>
        <label for="recReferenciaSelect">Recuento de referencia (opcional)</label>
        <select id="recReferenciaSelect">
         <option value="">Sin referencia</option>
@@ -879,6 +886,11 @@ input::placeholder{color:#9aa8ad}
 
     <div class="toolbar">
      <input id="recSearch" style="flex:1;min-width:220px" placeholder="Buscar recuento por nombre o responsable…">
+     <select id="recTipoFilter">
+      <option value="">Todos los tipos</option>
+      <option value="bienes_uso">Bienes de uso</option>
+      <option value="insumos_preelaborados">Insumos / Pre-elaborados</option>
+     </select>
      <select id="recEstadoFilter">
       <option value="">Todos los estados</option>
       <option value="abierto">Abiertos</option>
@@ -901,6 +913,7 @@ input::placeholder{color:#9aa8ad}
        <tr>
         <th style="width:42px"><input type="checkbox" id="selectAllRecuentos" title="Seleccionar todos los recuentos abiertos visibles"></th>
         <th>Nombre del recuento</th>
+        <th>Tipo</th>
         <th>Auditor/Auditores</th>
         <th>Creación</th>
         <th>Estado</th>
@@ -920,9 +933,14 @@ input::placeholder{color:#9aa8ad}
       <div>
        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <h2 id="workRecNombre" style="margin:0">—</h2>
+        <span id="workRecTipo"></span>
         <span id="workRecEstado"></span>
        </div>
        <p id="workRecMeta" style="margin:6px 0 0">—</p>
+       <div id="workVestaStatusBar" style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted)" hidden>
+        <span id="workVestaStatusText">Catálogo Vesta: sin cargar</span>
+        <button type="button" class="secondary sm" id="workVestaSyncBtn">↻ Sincronizar catálogo Vesta</button>
+       </div>
        <div class="workRefBar">
         <span style="font-size:11.5px;color:var(--muted);font-weight:600">Referencia:</span>
         <select id="workRefSelect" class="workRefSelect" title="Recuento de referencia para comparar cantidades">
@@ -2112,6 +2130,148 @@ function canEditRecuento(rec){
  if(!isAuditoriaServicios())return true;
  return !!(currentUser && rec.creado_por && rec.creado_por===currentUser.id);
 }
+
+let vestaCatalogAll=[];
+let vestaCatalogLoading=false;
+
+function normalizeRecTipo(tipo){
+ return tipo==='insumos_preelaborados'?'insumos_preelaborados':'bienes_uso';
+}
+function isVestaRecuento(rec=activeRecuento){
+ return normalizeRecTipo(rec?.tipo)==='insumos_preelaborados';
+}
+function recTipoPill(tipo){
+ return normalizeRecTipo(tipo)==='insumos_preelaborados'
+  ?'<span class="pill consolidado">Insumos / Pre-elab.</span>'
+  :'<span class="pill">Bienes de uso</span>';
+}
+function getRecuentoCatalog(rec=activeRecuento){
+ return isVestaRecuento(rec)?vestaCatalogAll:all;
+}
+function findRecuentoArticle(codigo,rec=activeRecuento){
+ if(!codigo)return null;
+ const cat=getRecuentoCatalog(rec);
+ return cat.find(x=>x.codigo===codigo)||all.find(x=>x.codigo===codigo)||vestaCatalogAll.find(x=>x.codigo===codigo)||null;
+}
+
+async function loadVestaRecuentoCatalog(forceRefresh=false){
+ const statusEl=$('workVestaStatusText');
+ const btn=$('workVestaSyncBtn');
+ const updateStatus=(msg,color='var(--muted)')=>{
+  if(statusEl){statusEl.textContent=msg;statusEl.style.color=color;}
+ };
+
+ if(!forceRefresh && !vestaCatalogAll.length){
+  try{
+   const cached=await idbGet('kv','vesta_catalog_all');
+   if(Array.isArray(cached) && cached.length){
+    vestaCatalogAll=cached;
+   }
+  }catch{}
+ }
+
+ if(!forceRefresh && vestaCatalogAll.length){
+  const insCnt=vestaCatalogAll.filter(x=>x._vestaSource==='insumo').length;
+  const preCnt=vestaCatalogAll.filter(x=>x._vestaSource==='preelaborado').length;
+  updateStatus(`Catálogo Vesta listo: ${insCnt} insumos · ${preCnt} pre-elaborados`,'var(--accent2)');
+  return vestaCatalogAll;
+ }
+
+ if(!navigator.onLine){
+  updateStatus(vestaCatalogAll.length
+   ?`Catálogo Vesta (offline): ${vestaCatalogAll.length} artículos`
+   :'Sin conexión y sin caché local del catálogo Vesta.','var(--warn)');
+  return vestaCatalogAll;
+ }
+
+ if(typeof loadVestaSession==='function' && !vestaSession?.accessToken)loadVestaSession();
+ if(!vestaSession?.accessToken){
+  updateStatus('Conectá tu cuenta de Vesta en el menú lateral para cargar insumos y pre-elaborados.','var(--warn)');
+  return vestaCatalogAll;
+ }
+
+ if(vestaCatalogLoading)return vestaCatalogAll;
+ vestaCatalogLoading=true;
+ if(btn)btn.disabled=true;
+ updateStatus('Sincronizando insumos y pre-elaborados desde Vesta…','var(--muted)');
+
+ try{
+  const byCode=new Map();
+
+  // 1. Stock de Insumos (paginado)
+  let pageIns=1, totalInsPages=1;
+  while(pageIns<=totalInsPages && pageIns<=30){
+   const res=await vestaFetch(`/insumos?pagina=${pageIns}&tamanoPagina=200&catalogo=false`);
+   const json=await res.json().catch(()=>({}));
+   if(!res.ok)throw new Error(json.message||json.error||`Error HTTP ${res.status} al consultar insumos`);
+   const rows=Array.isArray(json.data)?json.data:[];
+   rows.forEach(it=>{
+    if(it.estado && String(it.estado).toLowerCase()==='inactivo')return;
+    const codigo=String(it.codigo||'').trim();
+    const descripcion=String(it.nombre_insumo||'').trim();
+    if(!codigo || !descripcion)return;
+    const catParts=[it.nombre_familia,it.nombre_grupo].filter(Boolean).join(' / ');
+    const um=String(it.nombre_unidad_medida||'').trim();
+    byCode.set(codigo,{
+     codigo,
+     descripcion,
+     categoria:`Insumo${catParts?' · '+catParts:''}${um?' ('+um+')':''}`,
+     unidad_medida:um,
+     activo:true,
+     verificacion_foto:'Sin foto',
+     foto_archivo:null,
+     _vestaSource:'insumo'
+    });
+   });
+   totalInsPages=Number(json.paginacion?.totalPagina||1);
+   if(!rows.length)break;
+   pageIns++;
+  }
+
+  // 2. Stock de Pre-Elaborados (paginado)
+  let pagePre=1, totalPrePages=1;
+  while(pagePre<=totalPrePages && pagePre<=15){
+   const res=await vestaFetch(`/preelaborados?pagina=${pagePre}&tamanoPagina=200`);
+   const json=await res.json().catch(()=>({}));
+   if(!res.ok)throw new Error(json.message||json.error||`Error HTTP ${res.status} al consultar pre-elaborados`);
+   const rows=Array.isArray(json.data)?json.data:[];
+   rows.forEach(it=>{
+    const codigo=String(it.codigo_preelaborado||'').trim();
+    const descripcion=String(it.nombre||'').trim();
+    if(!codigo || !descripcion)return;
+    const um=String(it.unidad_medida||'').trim();
+    byCode.set(codigo,{
+     codigo,
+     descripcion,
+     categoria:`Pre-elaborado${um?' ('+um+')':''}`,
+     unidad_medida:um,
+     activo:true,
+     verificacion_foto:'Sin foto',
+     foto_archivo:null,
+     _vestaSource:'preelaborado'
+    });
+   });
+   totalPrePages=Number(json.paginacion?.totalPagina||1);
+   if(!rows.length)break;
+   pagePre++;
+  }
+
+  vestaCatalogAll=[...byCode.values()].sort((a,b)=>a.descripcion.localeCompare(b.descripcion,'es'));
+  await idbPut('kv',vestaCatalogAll,'vesta_catalog_all').catch(()=>{});
+
+  const insCnt=vestaCatalogAll.filter(x=>x._vestaSource==='insumo').length;
+  const preCnt=vestaCatalogAll.filter(x=>x._vestaSource==='preelaborado').length;
+  updateStatus(`Catálogo Vesta sincronizado: ${insCnt} insumos · ${preCnt} pre-elaborados`,'var(--accent2)');
+  return vestaCatalogAll;
+ }catch(e){
+  console.error('Error al cargar catálogo Vesta:',e);
+  updateStatus('Error al cargar Vesta: '+(e.message||e),'var(--danger)');
+  return vestaCatalogAll;
+ }finally{
+  vestaCatalogLoading=false;
+  if(btn)btn.disabled=false;
+ }
+}
 let selectedRecuentoIds=new Set();
 let workRecuentoArticulos=[], workParciales=[], workPrealtas=[], workFotos=[], signedFotoUrls={};
 const REC_REF_STORAGE_KEY='hotelito_recuento_refs';
@@ -2488,6 +2648,7 @@ async function processSyncQueues(manual=false){
       id:op.payload.id,
       nombre:op.payload.nombre,
       responsable:op.payload.responsable,
+      tipo:normalizeRecTipo(op.payload.tipo),
       estado:'abierto',
       creado_por:currentUser.id,
       creado_en:op.payload.creado_en
@@ -4486,7 +4647,7 @@ async function loadRecuentos(){
    try{
     const {data,error}=await sb
      .from('recuentos')
-     .select('id,nombre,responsable,estado,creado_por,creado_en,cerrado_por,cerrado_en,consolidado_en_id')
+     .select('id,nombre,responsable,tipo,estado,creado_por,creado_en,cerrado_por,cerrado_en,consolidado_en_id')
      .order('creado_en',{ascending:false});
     if(error)throw error;
     serverList=data||[];
@@ -4527,9 +4688,11 @@ async function loadRecuentos(){
 function getFilteredRecuentosList(){
  const q=$('recSearch').value.toLocaleLowerCase('es').trim();
  const est=$('recEstadoFilter').value;
+ const tipo=$('recTipoFilter')?.value||'';
  return recuentos.filter(r=>
   (!q||[r.nombre,r.responsable].some(v=>(v||'').toLocaleLowerCase('es').includes(q)))&&
-  (!est||r.estado===est)
+  (!est||r.estado===est)&&
+  (!tipo||normalizeRecTipo(r.tipo)===tipo)
  );
 }
 
@@ -4569,6 +4732,7 @@ function renderRecuentos(){
      ${r._offlinePending?'<span class="syncTag">Pendiente sync</span>':''}
      ${refObj?`<div style="font-size:11px;color:var(--muted);margin-top:2px">Ref: ${esc(refObj.nombre)}</div>`:''}
     </td>
+    <td>${recTipoPill(r.tipo)}</td>
     <td>${esc(r.responsable||'—')}</td>
     <td>${formatDate(r.creado_en)}</td>
     <td>${recEstadoPill(r.estado)}</td>
@@ -4708,6 +4872,7 @@ async function createRecuento(){
 
  const nombre=$('recNombre').value.trim();
  const responsable=$('recResponsable').value.trim();
+ const tipo=normalizeRecTipo($('recTipo')?.value||'bienes_uso');
  $('recCreateMsg').textContent='';
 
  if(!nombre){
@@ -4728,6 +4893,7 @@ async function createRecuento(){
   id:newUuid(),
   nombre,
   responsable,
+  tipo,
   estado:'abierto',
   creado_por:currentUser.id,
   creado_en:new Date().toISOString(),
@@ -4852,10 +5018,19 @@ async function openRecuentoWork(r){
  $('recuentoWorkPanel').hidden=false;
  $('workRecNombre').textContent=r.nombre;
  if($('workSummarySearch'))$('workSummarySearch').value='';
+ if($('workRecTipo'))$('workRecTipo').innerHTML=recTipoPill(r.tipo);
  $('workRecEstado').innerHTML=recEstadoPill(r.estado);
  $('workRecMeta').textContent=
   `Auditor/Auditores: ${r.responsable||'—'} · Creado: ${formatDate(r.creado_en)}`+
   (r.cerrado_en?` · Cerrado: ${formatDate(r.cerrado_en)}`:'');
+
+ const isVesta=isVestaRecuento(r);
+ if($('workVestaStatusBar'))$('workVestaStatusBar').hidden=!isVesta;
+ if($('recArtSearch')){
+  $('recArtSearch').placeholder=isVesta
+   ?'Buscar insumo o pre-elaborado de Vesta por código, nombre o grupo…'
+   :'Buscar por código, descripción o categoría…';
+ }
 
  const isOpen=r.estado==='abierto';
  const isClosed=r.estado==='cerrado';
@@ -4879,6 +5054,7 @@ async function openRecuentoWork(r){
  $('addParcialSection').style.display=isOpenEditable?'grid':'none';
  $('thParcialActions').hidden=!isOpenEditable;
 
+ if(isVesta)await loadVestaRecuentoCatalog(false);
  populateRecuentoRefSelectors();
  await loadWorkReferenceData();
  await loadWorkRecuentoData();
@@ -5084,7 +5260,7 @@ function buildRecuentoConsolidatedItems(raList,parcialesList,prealtasList,sortMo
  },'');
 
  raList.filter(ra=>ra.articulo_codigo).forEach(ra=>{
-  const art=all.find(x=>x.codigo===ra.articulo_codigo);
+  const art=findRecuentoArticle(ra.articulo_codigo);
   const ps=parcialesList.filter(p=>p.recuento_articulo_id===ra.id);
   if(!ps.length)return;
   const total=ps.reduce((acc,p)=>acc+Number(p.cantidad||0),0);
@@ -5827,7 +6003,7 @@ async function loadWorkRecuentoData(){
   renderWorkSummary();
   if(selectedRecItem){
    if(selectedRecItem.kind==='catalogo'){
-    const updatedArt=all.find(x=>x.codigo===selectedRecItem.article.codigo);
+    const updatedArt=findRecuentoArticle(selectedRecItem.article.codigo);
     if(updatedArt)selectedRecItem.article=updatedArt;
    }else{
     const updatedPre=workPrealtas.find(x=>x.id===selectedRecItem.prealta.id);
@@ -6014,7 +6190,8 @@ function handleRecArtSearch(){
   })
   .slice(0,10);
 
- const catMatches=all
+ const catSource=getRecuentoCatalog();
+ const catMatches=catSource
   .filter(a=>a.activo!==false)
   .filter(a=>[a.codigo,a.descripcion,a.categoria].some(v=>(v||'').toLocaleLowerCase('es').includes(q)))
   .slice(0,25);
@@ -6089,7 +6266,7 @@ function handleRecArtSearch(){
 
  document.querySelectorAll('[data-pick-code]').forEach(el=>{
   el.addEventListener('click',()=>{
-   const art=all.find(x=>x.codigo===el.dataset.pickCode);
+   const art=findRecuentoArticle(el.dataset.pickCode);
    if(art)selectRecItem({kind:'catalogo',article:art});
   });
  });
@@ -6974,7 +7151,7 @@ function handleEditParcialMoveSearch(){
   .filter(pa=>[pa.descripcion,pa.categoria,'pre-alta','prealta'].some(v=>(v||'').toLocaleLowerCase('es').includes(q)))
   .slice(0,8);
 
- const catMatches=all
+ const catMatches=getRecuentoCatalog()
   .filter(a=>a.activo!==false)
   .filter(a=>[a.codigo,a.descripcion,a.categoria].some(v=>(v||'').toLocaleLowerCase('es').includes(q)))
   .slice(0,18);
@@ -7009,7 +7186,7 @@ function handleEditParcialMoveSearch(){
 
  box.querySelectorAll('[data-move-code]').forEach(el=>{
   el.onclick=()=>{
-   const art=all.find(x=>x.codigo===el.dataset.moveCode);
+   const art=findRecuentoArticle(el.dataset.moveCode);
    if(art){
     editingParcialTargetItem={kind:'catalogo',article:art};
     $('editParcialMoveSearch').value='';
@@ -7036,7 +7213,7 @@ function openEditParcialModal(p){
  editingParcial=p;
  const currentRa=workRecuentoArticulos.find(x=>x.id===p.recuento_articulo_id);
  if(currentRa?.articulo_codigo){
-  const art=all.find(x=>x.codigo===currentRa.articulo_codigo)||{codigo:currentRa.articulo_codigo,descripcion:currentRa.articulo_codigo};
+  const art=findRecuentoArticle(currentRa.articulo_codigo)||{codigo:currentRa.articulo_codigo,descripcion:currentRa.articulo_codigo};
   editingParcialTargetItem={kind:'catalogo',article:art};
  }else if(currentRa?.prealta_id){
   const pa=workPrealtas.find(x=>x.id===currentRa.prealta_id);
@@ -8630,6 +8807,8 @@ $('createRecuentoBtn').addEventListener('click',createRecuento);
 $('refreshRecuentos').addEventListener('click',loadRecuentos);
 $('recSearch').addEventListener('input',renderRecuentos);
 $('recEstadoFilter').addEventListener('change',renderRecuentos);
+if($('recTipoFilter'))$('recTipoFilter').addEventListener('change',renderRecuentos);
+if($('workVestaSyncBtn'))$('workVestaSyncBtn').addEventListener('click',()=>loadVestaRecuentoCatalog(true));
 $('backToRecuentos').addEventListener('click',closeRecuentoWork);
 $('refreshWorkRecuento').addEventListener('click',loadWorkRecuentoData);
 
