@@ -6621,6 +6621,7 @@ async function addParcial(){
   $('parcialCalcPreview').textContent='';
   clearPendingParcialPhoto();
 
+  const savedScrollY=window.scrollY;
   renderSelectedRecItem();
   renderWorkSummary();
 
@@ -6637,8 +6638,9 @@ async function addParcial(){
    if(document.activeElement && typeof document.activeElement.blur==='function')document.activeElement.blur();
    $('parcialExpr')?.blur();
   }else{
-   $('parcialExpr').focus();
+   $('parcialExpr').focus({preventScroll:true});
   }
+  requestAnimationFrame(()=>window.scrollTo({top:savedScrollY,behavior:'instant'}));
 
   // 2. Persistencia segura en IndexedDB + sincronización continua en segundo plano
   await enqueueDataOp({
