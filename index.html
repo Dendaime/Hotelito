@@ -928,20 +928,20 @@ input::placeholder{color:#9aa8ad}
         <span class="zoomBadge" id="selArtZoomBadge">Ampliar</span>
        </div>
        <div>
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
-         <div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:nowrap">
+         <div style="min-width:0;flex:1">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
            <span class="code" id="selArtCode" style="font-size:15px">—</span>
            <span id="selArtTypeBadge"></span>
           </div>
-          <h3 id="selArtDesc" style="margin:4px 0">—</h3>
+          <h3 id="selArtDesc" style="margin:6px 0 4px">—</h3>
           <div style="font-size:12px;color:var(--muted)" id="selArtCat">—</div>
          </div>
-         <div style="text-align:right">
+         <div style="text-align:right;flex-shrink:0">
+          <button class="secondary sm" id="closeSelectedArt" style="margin-bottom:6px">Cerrar ficha</button>
           <div style="font-size:11px;color:var(--muted);text-transform:uppercase">Total contado</div>
-          <div id="selArtTotal" style="font:800 24px Manrope;color:var(--accent)">0</div>
+          <div id="selArtTotal" style="font:800 24px Manrope;color:var(--accent);line-height:1.1">0</div>
           <div id="selArtRefInfo" class="refInlineBadge" hidden></div>
-          <button class="secondary sm" id="closeSelectedArt" style="margin-top:6px">Cerrar ficha</button>
          </div>
         </div>
        </div>
