@@ -869,22 +869,14 @@ input::placeholder{color:#9aa8ad}
     <div class="card">
      <div class="recHeader">
       <div>
-       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <h2 id="workRecNombre" style="margin:0">—</h2>
         <span id="workRecTipo"></span>
+        <button type="button" class="secondary sm" id="workVestaSyncBtn" title="Forzar sincronización del catálogo Vesta" style="padding:3px 7px;font-size:12px;line-height:1" hidden>↻</button>
+        <span id="workVestaSyncToast" style="font-size:11.5px;font-weight:700;color:var(--accent2)" hidden></span>
         <span id="workRecEstado"></span>
        </div>
        <p id="workRecMeta" style="margin:6px 0 0">—</p>
-       <div id="workVestaStatusBar" style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted)" hidden>
-        <span id="workVestaStatusText">Catálogo Vesta: sin cargar</span>
-        <button type="button" class="secondary sm" id="workVestaSyncBtn">↻ Sincronizar catálogo Vesta</button>
-       </div>
-       <div class="workRefBar">
-        <span style="font-size:11.5px;color:var(--muted);font-weight:600">Referencia:</span>
-        <select id="workRefSelect" class="workRefSelect" title="Recuento de referencia para comparar cantidades">
-         <option value="">Sin referencia</option>
-        </select>
-       </div>
       </div>
       <div class="recHeaderActions" style="display:flex;gap:8px;flex-wrap:wrap">
        <button class="secondary" id="exportRecuentoExcelBtn">↓ Excel</button>
@@ -5040,7 +5032,8 @@ async function openRecuentoWork(r){
   (r.cerrado_en?` · Cerrado: ${formatDate(r.cerrado_en)}`:'');
 
  const isVesta=isVestaRecuento(r);
- if($('workVestaStatusBar'))$('workVestaStatusBar').hidden=!isVesta;
+ if($('workVestaSyncBtn'))$('workVestaSyncBtn').hidden=!isVesta;
+ if($('workVestaSyncToast'))$('workVestaSyncToast').hidden=true;
  if($('recArtSearch')){
   $('recArtSearch').placeholder=isVesta
    ?'Buscar insumo o pre-elaborado de Vesta por código, nombre o grupo…'
@@ -8829,7 +8822,16 @@ if($('refreshRecuentos'))$('refreshRecuentos').addEventListener('click',loadRecu
 $('recSearch').addEventListener('input',renderRecuentos);
 $('recEstadoFilter').addEventListener('change',renderRecuentos);
 if($('recTipoFilter'))$('recTipoFilter').addEventListener('change',renderRecuentos);
-if($('workVestaSyncBtn'))$('workVestaSyncBtn').addEventListener('click',()=>loadVestaRecuentoCatalog(true));
+if($('workVestaSyncBtn'))$('workVestaSyncBtn').addEventListener('click',async()=>{
+ await loadVestaRecuentoCatalog(true);
+ const t=$('workVestaSyncToast');
+ if(t){
+  t.textContent='✓ Sincronizado';
+  t.hidden=false;
+  clearTimeout(window._vestaSyncToastTimer);
+  window._vestaSyncToastTimer=setTimeout(()=>{t.hidden=true;},1200);
+ }
+});
 $('backToRecuentos').addEventListener('click',closeRecuentoWork);
 $('refreshWorkRecuento').addEventListener('click',loadWorkRecuentoData);
 
@@ -8893,7 +8895,7 @@ $('recArtSearch').addEventListener('input',()=>{
 });
 $('workSummarySort').addEventListener('change',renderWorkSummary);
 $('workSummarySearch').addEventListener('input',renderWorkSummary);
-$('workRefSelect').addEventListener('change',async()=>{
+if($('workRefSelect'))$('workRefSelect').addEventListener('change',async()=>{
  if(!activeRecuento)return;
  setRecuentoRefId(activeRecuento.id,$('workRefSelect').value||'');
  await loadWorkReferenceData();
