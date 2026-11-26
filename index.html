@@ -1976,10 +1976,8 @@ input::placeholder{color:#9aa8ad}
     <input id="vestaLoginPass" type="password" placeholder="Contraseña Vesta" autocomplete="off">
     <button type="button" class="sm" id="vestaLoginBtn">Guardar y conectar Vesta</button>
    </div>
-   <div id="vestaConnectedActions" style="display:none;gap:8px;flex-wrap:wrap">
-    <button type="button" class="secondary sm" id="vestaRefreshBtn">↻ Actualizar Vesta</button>
-    <button type="button" class="secondary sm" id="vestaExportExcelBtn">↓ Exportar Excel oficial</button>
-    <button type="button" class="danger sm" id="vestaLogoutBtn" style="margin-left:auto">Desconectar</button>
+   <div id="vestaConnectedActions" style="display:none;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+    <button type="button" class="danger sm" id="vestaLogoutBtn">Desconectar</button>
    </div>
   </div>
 
@@ -1994,9 +1992,8 @@ input::placeholder{color:#9aa8ad}
     <input id="acgmLoginPass" type="password" placeholder="Contraseña ACGM" autocomplete="off">
     <button type="button" class="sm" id="acgmLoginBtn">Guardar y conectar ACGM</button>
    </div>
-   <div id="acgmConnectedActions" style="display:none;gap:8px;flex-wrap:wrap">
-    <button type="button" class="secondary sm" id="acgmRefreshBtn">↻ Actualizar ACGM</button>
-    <button type="button" class="danger sm" id="acgmLogoutBtn" style="margin-left:auto">Desconectar</button>
+   <div id="acgmConnectedActions" style="display:none;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+    <button type="button" class="danger sm" id="acgmLogoutBtn">Desconectar</button>
    </div>
   </div>
  </div>
@@ -10532,9 +10529,9 @@ $('openAcgmDrawerBtn').addEventListener('click',openConexionesModal);
 $('vestaLoginBtn').addEventListener('click',vestaLogin);
 $('vestaLoginPass').addEventListener('keydown',e=>{if(e.key==='Enter')vestaLogin();});
 $('vestaLogoutBtn').addEventListener('click',vestaLogout);
-$('vestaRefreshBtn').addEventListener('click',loadVestaRecepciones);
+if($('vestaRefreshBtn'))$('vestaRefreshBtn').addEventListener('click',loadVestaRecepciones);
 $('vBuscarBtn').addEventListener('click',loadVestaRecepciones);
-$('vestaExportExcelBtn').addEventListener('click',exportVestaRecepcionesExcel);
+if($('vestaExportExcelBtn'))$('vestaExportExcelBtn').addEventListener('click',exportVestaRecepcionesExcel);
 document.querySelectorAll('#vAuditChips [data-vaudit]').forEach(btn=>{
  btn.addEventListener('click',()=>{
   vestaAuditFilter=btn.dataset.vaudit;
@@ -11597,7 +11594,7 @@ document.querySelectorAll('#acgmTipoSwitch [data-acgm-tipo]').forEach(btn=>{
 $('acgmLoginBtn').addEventListener('click',acgmLogin);
 $('acgmLoginPass').addEventListener('keydown',e=>{if(e.key==='Enter')acgmLogin();});
 $('acgmLogoutBtn').addEventListener('click',acgmLogout);
-$('acgmRefreshBtn').addEventListener('click',loadAcgmFacturas);
+if($('acgmRefreshBtn'))$('acgmRefreshBtn').addEventListener('click',loadAcgmFacturas);
 $('aBuscarBtn').addEventListener('click',loadAcgmFacturas);
 $('acgmExportExcelBtn').addEventListener('click',exportAcgmComprasExcel);
 $('aSearch').addEventListener('input',renderAcgmFacturas);
