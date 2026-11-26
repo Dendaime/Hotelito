@@ -19,7 +19,7 @@
 :root{--bg:#f4f7f8;--panel:#ffffff;--panel2:#edf3f4;--line:#dce5e8;--text:#26363d;--muted:#687b83;--accent:#258b8d;--accent2:#39845d;--warn:#a66a10;--danger:#bd4b45;--white:#fff}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-anchor:none}
 header{position:sticky;top:0;z-index:45;padding:8px clamp(14px,3vw,36px);border-bottom:1px solid var(--line);background:linear-gradient(120deg,#ffffff,#f0f7f7);box-shadow:0 2px 10px #1622270f}
 .top{max-width:1400px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:14px}
@@ -2505,7 +2505,8 @@ async function updateSyncIndicator(){
   pillEl.textContent=window.innerWidth<=650?'● En línea':'● En línea · Sincronizado';
  }
 
- if(totalPending>0){
+ const hasSyncError=ops.some(o=>o.last_error)||photos.some(p=>p.last_error);
+ if(totalPending>0 && (!online || (!isSyncingQueue && hasSyncError))){
   bannerEl.hidden=false;
   $('pendingRecoveryText').textContent=
    `Hay ${ops.length} registro(s) y ${photos.length} fotografía(s) guardados localmente pendientes de sincronización con Supabase.`;
