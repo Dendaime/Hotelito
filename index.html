@@ -424,6 +424,27 @@ input::placeholder{color:#9aa8ad}
 @media(max-width:1050px){
  .parcialForm{grid-template-columns:1fr 1fr}
  .parcialSubmitCol{padding-top:21px}
+ #recuentosListPanel .tablewrap{background:transparent;border:0;box-shadow:none;overflow:visible}
+ #recuentosListPanel table,#recuentosListPanel tbody{display:block;width:100%}
+ #recuentosListPanel thead{display:none}
+ #recRows{display:flex;flex-direction:column;gap:10px}
+ #recRows tr.item{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"chk name est" "chk tipo date" "chk aud aud" "actions actions actions";column-gap:10px;row-gap:5px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:12px 14px;box-shadow:0 2px 8px #26363d0a}
+ #recRows tr.item td{border:0;padding:0}
+ #recRows tr.item td:nth-child(1){grid-area:chk;align-self:start;padding-top:2px}
+ #recRows tr.item td:nth-child(2){grid-area:name;font-size:14.5px;min-width:0}
+ #recRows tr.item td:nth-child(3){grid-area:tipo}
+ #recRows tr.item td:nth-child(4){grid-area:aud;font-size:12.5px;color:var(--muted)}
+ #recRows tr.item td:nth-child(4)::before{content:"Auditor: ";font-weight:600}
+ #recRows tr.item td:nth-child(5){grid-area:date;font-size:11.5px;color:var(--muted);justify-self:end}
+ #recRows tr.item td:nth-child(6){grid-area:est;justify-self:end}
+ #recRows tr.item td:nth-child(7){grid-area:actions;padding-top:7px;border-top:1px solid var(--line);margin-top:3px}
+ #recRows tr.item td:nth-child(7) > div{justify-content:flex-start;width:100%}
+ #recRows tr.item td:nth-child(7) .iconDelBtn{margin-left:auto}
+ #recuentosListPanel .toolbar{padding:12px;gap:8px}
+ #recSearch{flex:1 1 100%!important;min-width:0!important}
+ #recTipoFilter,#recEstadoFilter{flex:1 1 46%;min-width:0}
+ #openCompareRecuentosBtn,#consolidateSelectedBtn{flex:1 1 46%;min-width:0}
+ #openNewRecuentoModalBtn{flex:1 1 100%;padding:10px 12px;font-weight:700}
 }
 @media(max-width:760px){
  .formGrid,.compareGrid{grid-template-columns:1fr}
