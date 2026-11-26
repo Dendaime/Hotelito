@@ -7500,8 +7500,8 @@ function renderWorkSummary(){
    const kind=tr.dataset.sumKind;
    const key=tr.dataset.sumKey;
    if(kind==='catalogo'){
-    const art=all.find(a=>a.codigo===key);
-    if(art)selectRecItem({kind:'catalogo',article:art});
+    const art=findRecuentoArticle(key)||{codigo:key,descripcion:key,categoria:'—',activo:true};
+    selectRecItem({kind:'catalogo',article:art});
    }else{
     const pa=workPrealtas.find(p=>p.id===key);
     if(pa)selectRecItem({kind:'prealta',prealta:pa});
