@@ -533,12 +533,14 @@ input::placeholder{color:#9aa8ad}
  /* 3. Subvista de trabajo dentro de un recuento (Prueba 3, etc.) */
  .card{padding:14px;margin-bottom:12px}
  .recHeader{gap:10px;padding-bottom:10px;margin-bottom:12px}
- .recHeaderActions{width:100%;display:grid!important;grid-template-columns:repeat(3,1fr);gap:5px!important}
- .recHeaderActions button{padding:7px 6px;font-size:11.5px;text-align:center}
+ .recHeaderActions{display:none!important}
  #recuentoWorkPanel .card{padding:12px}
  #recArtSearchWrap{scroll-margin-top:64px}
  #recArtSearchWrap label[for="recArtSearch"]{display:none}
- #recArtSearchWrap .searchInputRow{flex-wrap:nowrap!important}
+ .recSearchTopRow{display:flex!important;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:nowrap}
+ .recSearchTopRow button{flex:1;padding:8px 6px;font-size:12px;text-align:center;white-space:nowrap}
+ #mobileBackToRecuentosBtn{display:inline-flex!important;justify-content:center;align-items:center}
+ #recArtSearch{width:100%}
  #recSearchResults{max-height:46vh;margin-top:6px;-webkit-overflow-scrolling:touch}
  #recSearchResults .searchItem{padding:8px 10px;gap:8px;font-size:13px}
  #recSearchResults .searchItem .pill{font-size:11px;padding:3px 7px}
@@ -905,15 +907,16 @@ input::placeholder{color:#9aa8ad}
      </div>
 
      <div id="recArtSearchWrap">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+      <div class="recSearchTopRow" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
        <label for="recArtSearch" style="font-size:12px;color:var(--muted);margin:0">
         Buscar artículo del catálogo o pre-alta de este recuento
        </label>
-       <button type="button" class="secondary sm" id="openNewPrealtaBtn">+ Artículo no catalogado (Pre-alta)</button>
+       <button type="button" class="secondary sm" id="openNewPrealtaBtn">+ Pre-alta</button>
+       <button type="button" class="secondary sm" id="clearRecArtSearch" hidden>Limpiar</button>
+       <button type="button" class="secondary sm" id="mobileBackToRecuentosBtn" style="display:none">← Volver</button>
       </div>
-      <div class="searchInputRow" style="display:flex;gap:8px;flex-wrap:wrap">
-       <input id="recArtSearch" style="flex:1;min-width:0" placeholder="Escribí código, descripción o categoría…">
-       <button class="secondary" id="clearRecArtSearch" hidden>Limpiar</button>
+      <div class="searchInputRow" style="display:flex;gap:8px">
+       <input id="recArtSearch" style="flex:1;width:100%;min-width:0" placeholder="Escribí código, descripción o categoría…">
       </div>
       <div id="recSearchResults" class="searchResults" hidden></div>
      </div>
@@ -4758,6 +4761,7 @@ function renderRecuentos(){
      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
       <button type="button" class="secondary sm" data-dl-excel="${esc(r.id)}">Excel</button>
       <button type="button" class="secondary sm" data-dl-pdf="${esc(r.id)}">PDF</button>
+      ${isOpenRec && !r._offlinePending?`<button type="button" class="danger sm" data-close-rec="${esc(r.id)}" title="Cerrar recuento">Cerrar</button>`:''}
       ${isOpenRec?`<button type="button" class="iconDelBtn" data-del-rec="${esc(r.id)}" title="Eliminar recuento abierto">🗑</button>`:''}
      </div>
     </td>
@@ -4804,6 +4808,33 @@ function renderRecuentos(){
    btn.disabled=true;
    try{await exportRecuentoById(rec,'pdf');}
    finally{btn.disabled=false;}
+  });
+ });
+
+ document.querySelectorAll('[data-close-rec]').forEach(btn=>{
+  btn.addEventListener('click',async e=>{
+   e.stopPropagation();
+   const rec=recuentos.find(x=>x.id===btn.dataset.closeRec);
+   if(!rec||rec.estado!=='abierto'||!canEditRecuento(rec))return;
+   if(await hasPendingForRecuento(rec.id)){
+    alert('No se puede cerrar el recuento porque aún tiene parciales o fotografías pendientes de sincronización.');
+    return;
+   }
+   if(!navigator.onLine){
+    alert('Necesitás conexión a internet para cerrar el recuento.');
+    return;
+   }
+   if(!confirm(`¿CERRAR DEFINITIVAMENTE EL RECUENTO "${rec.nombre}"?\n\nPasará a modo de solo lectura.`))return;
+   btn.disabled=true;
+   try{
+    const {error}=await sb.rpc('cerrar_recuento',{p_recuento_id:rec.id});
+    if(error)throw error;
+    await loadRecuentos();
+    alert('El recuento fue cerrado correctamente.');
+   }catch(err){
+    alert('No se pudo cerrar el recuento: '+(err.message||err));
+    btn.disabled=false;
+   }
   });
  });
 
@@ -8857,6 +8888,7 @@ if($('workVestaSyncBtn'))$('workVestaSyncBtn').addEventListener('click',async()=
  }
 });
 $('backToRecuentos').addEventListener('click',closeRecuentoWork);
+if($('mobileBackToRecuentosBtn'))$('mobileBackToRecuentosBtn').addEventListener('click',closeRecuentoWork);
 $('refreshWorkRecuento').addEventListener('click',loadWorkRecuentoData);
 
 $('selectAllRecuentos').addEventListener('change',()=>{
