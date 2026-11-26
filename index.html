@@ -3475,7 +3475,12 @@ async function loadData(opts={}){
 
   applyEditorUiState();
 
-  if(!opts.background || prevIsEditor!==isEditor || prevRole!==editorRole){
+  const authNoticeKey=`${currentUser?.id||'anon'}|${isEditor}|${editorRole}`;
+  let alreadyShown=window._lastTopNoticeAuthKey===authNoticeKey;
+  try{if(sessionStorage.getItem('hotelito_notice_key')===authNoticeKey)alreadyShown=true;}catch{}
+  if(!alreadyShown){
+   window._lastTopNoticeAuthKey=authNoticeKey;
+   try{sessionStorage.setItem('hotelito_notice_key',authNoticeKey);}catch{}
    const tn=$('topNotice');
    tn.textContent=isAuditoriaServicios()
     ?'Sesión de Auditoría de servicios habilitada. Podés consultar el catálogo maestro, agregar observaciones/fotografías y gestionar tus propios recuentos físicos.'
