@@ -6590,7 +6590,12 @@ async function addParcial(){
   }
   showParcialSavedToast(`+${formatQty(cantidad)} cargado · ${itemLabel}`);
   btn.disabled=false;
-  $('parcialExpr').focus();
+  if(window.innerWidth<=720){
+   if(document.activeElement && typeof document.activeElement.blur==='function')document.activeElement.blur();
+   $('parcialExpr')?.blur();
+  }else{
+   $('parcialExpr').focus();
+  }
 
   // 2. Persistencia segura en IndexedDB + sincronización continua en segundo plano
   await enqueueDataOp({
