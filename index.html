@@ -2904,8 +2904,8 @@ async function processSyncQueues(manual=false){
     },{onConflict:'id',ignoreDuplicates:true});
     if(dbErr)throw dbErr;
 
-    // Si la foto pertenece a un artículo catalogado, agregarla automáticamente a la galería del Maestro
-    if(ph.articulo_codigo){
+    // Si la foto pertenece a un artículo del Catálogo Maestro de Hotelito, agregarla automáticamente a su galería
+    if(ph.articulo_codigo && all.some(x=>x.codigo===ph.articulo_codigo)){
      await syncEvidenceToMasterCatalog({
       articuloCodigo:ph.articulo_codigo,
       blob:ph.blob,
