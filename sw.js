@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hotelito-static-v1';
+const CACHE_NAME = 'hotelito-static-v2';
 const STATIC_ASSETS = [
   './',
   './index.html',
