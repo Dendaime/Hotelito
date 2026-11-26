@@ -6601,7 +6601,8 @@ async function addParcial(){
   }
   showParcialSavedToast(`+${formatQty(cantidad)} cargado · ${itemLabel}`);
   btn.disabled=false;
-  if(window.innerWidth<=720){
+  const isTouchDevice=('ontouchstart' in window) || (navigator.maxTouchPoints>0) || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  if(isTouchDevice || window.innerWidth<=1024){
    if(document.activeElement && typeof document.activeElement.blur==='function')document.activeElement.blur();
    $('parcialExpr')?.blur();
   }else{
