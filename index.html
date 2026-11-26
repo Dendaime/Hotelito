@@ -516,25 +516,28 @@ input::placeholder{color:#9aa8ad}
 
  #recuentosListPanel .toolbar{padding:11px;gap:8px}
  #recSearch{flex:1 1 100%!important;min-width:0!important;padding:10px 12px}
- #recEstadoFilter{flex:1 1 46%;padding:9px 10px;font-size:13px}
- #consolidateSelectedBtn{flex:1 1 48%;padding:9px 10px;font-size:12px}
- #openCompareRecuentosBtn,#refreshRecuentos{flex:1 1 46%;padding:9px 10px;font-size:12px}
+ #recTipoFilter,#recEstadoFilter{flex:1 1 46%;min-width:0;padding:9px 10px;font-size:13px}
+ #openCompareRecuentosBtn,#openNewRecuentoModalBtn{flex:1 1 46%;min-width:0;padding:9px 10px;font-size:12px}
+ #consolidateSelectedBtn{flex:1 1 100%;padding:9px 10px;font-size:12px}
 
- #recRows tr.item{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"chk name est" "chk aud aud" "chk date actions";column-gap:10px;row-gap:4px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:12px 13px;box-shadow:0 2px 8px #26363d0a}
+ #recRows tr.item{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"chk name est" "chk tipo date" "chk aud aud" "actions actions actions";column-gap:10px;row-gap:5px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:12px 13px;box-shadow:0 2px 8px #26363d0a}
  #recRows tr.item td{border:0;padding:0}
  #recRows tr.item td:nth-child(1){grid-area:chk;align-self:start;padding-top:2px}
- #recRows tr.item td:nth-child(2){grid-area:name;font-size:14px}
- #recRows tr.item td:nth-child(3){grid-area:aud;font-size:12px;color:var(--muted)}
- #recRows tr.item td:nth-child(3)::before{content:"Auditor: ";font-weight:600}
- #recRows tr.item td:nth-child(4){grid-area:date;font-size:11.5px;color:var(--muted)}
- #recRows tr.item td:nth-child(5){grid-area:est;justify-self:end}
- #recRows tr.item td:nth-child(6){grid-area:actions;justify-self:end}
+ #recRows tr.item td:nth-child(2){grid-area:name;font-size:14px;min-width:0}
+ #recRows tr.item td:nth-child(3){grid-area:tipo}
+ #recRows tr.item td:nth-child(4){grid-area:aud;font-size:12px;color:var(--muted)}
+ #recRows tr.item td:nth-child(4)::before{content:"Auditor: ";font-weight:600}
+ #recRows tr.item td:nth-child(5){grid-area:date;font-size:11px;color:var(--muted);justify-self:end}
+ #recRows tr.item td:nth-child(6){grid-area:est;justify-self:end}
+ #recRows tr.item td:nth-child(7){grid-area:actions;padding-top:6px;border-top:1px solid var(--line);margin-top:2px}
+ #recRows tr.item td:nth-child(7) > div{justify-content:flex-start;width:100%}
+ #recRows tr.item td:nth-child(7) .iconDelBtn{margin-left:auto}
 
  /* 3. Subvista de trabajo dentro de un recuento (Prueba 3, etc.) */
  .card{padding:14px;margin-bottom:12px}
  .recHeader{gap:10px;padding-bottom:10px;margin-bottom:12px}
- .recSubNavBar{flex-wrap:nowrap!important}
- .recSubNavBar button{flex:1;justify-content:center;text-align:center}
+ .recSubNavBar{flex-wrap:nowrap!important;align-items:stretch!important}
+ .recSubNavBar button{flex:1;display:inline-flex!important;align-items:center;justify-content:center;text-align:center;white-space:nowrap;font-size:12px;padding:8px 8px}
  .recHeaderActions{display:none!important}
  #recuentoWorkPanel .card{padding:12px}
  #recArtSearchWrap{scroll-margin-top:64px}
@@ -6349,7 +6352,8 @@ function selectRecItem(item){
  clearPendingParcialPhoto();
  $('selectedRecArticleBox').hidden=false;
  renderSelectedRecItem();
- if(activeRecuento?.estado==='abierto')$('parcialExpr').focus();
+ const isTouch=('ontouchstart' in window)||(navigator.maxTouchPoints>0)||(window.matchMedia&&window.matchMedia('(pointer: coarse)').matches);
+ if(!isTouch && window.innerWidth>1024 && activeRecuento?.estado==='abierto')$('parcialExpr').focus({preventScroll:true});
 }
 
 function renderSelectedRecItem(){
