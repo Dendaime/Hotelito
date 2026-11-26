@@ -6326,26 +6326,32 @@ function renderSelectedRecItem(){
  let ra=null, itemCodeLabel='', itemDesc='', itemCat='', badgeHtml='', catalogArticleForPromote=null;
 
  const topGrid=wrap.parentElement;
+ const isVestaRec=isVestaRecuento(activeRecuento);
+ wrap.hidden=isVestaRec;
+ if(topGrid)topGrid.style.gridTemplateColumns=isVestaRec?'1fr':'';
+
  if(selectedRecItem.kind==='catalogo'){
   const a=selectedRecItem.article;
-  catalogArticleForPromote=a;
+  catalogArticleForPromote=isVestaRec?null:a;
   ra=workRecuentoArticulos.find(x=>x.articulo_codigo===a.codigo);
   itemCodeLabel=a.codigo;
   itemDesc=a.descripcion;
   itemCat=`Categoría: ${a.categoria||'—'}`;
   badgeHtml='';
 
-  setImage(im,a,hasPhoto=>{
-   badge.hidden=!hasPhoto;
-   wrap.style.cursor=hasPhoto?'zoom-in':'default';
-   wrap.classList.toggle('noPhotoMobile',!hasPhoto);
-   if(topGrid)topGrid.classList.toggle('noPhotoMobile',!hasPhoto);
-  });
-  wrap.onclick=()=>{
-   if(im.src && im.style.display!=='none'){
-    openImageZoom(im.src,`${a.codigo} · ${a.descripcion}`,null,'Miniatura principal del catálogo');
-   }
-  };
+  if(!isVestaRec){
+   setImage(im,a,hasPhoto=>{
+    badge.hidden=!hasPhoto;
+    wrap.style.cursor=hasPhoto?'zoom-in':'default';
+    wrap.classList.toggle('noPhotoMobile',!hasPhoto);
+    if(topGrid)topGrid.classList.toggle('noPhotoMobile',!hasPhoto);
+   });
+   wrap.onclick=()=>{
+    if(im.src && im.style.display!=='none'){
+     openImageZoom(im.src,`${a.codigo} · ${a.descripcion}`,null,'Miniatura principal del catálogo');
+    }
+   };
+  }
  }else{
   const pa=selectedRecItem.prealta;
   const linkedArt=pa.articulo_codigo?all.find(x=>x.codigo===pa.articulo_codigo):null;
