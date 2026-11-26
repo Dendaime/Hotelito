@@ -685,38 +685,10 @@ input::placeholder{color:#9aa8ad}
  </nav>
 
  <div class="drawerConnWrap" id="drawerExternalConns" hidden>
-  <div style="font-size:11px;font-weight:800;text-transform:uppercase;color:var(--muted);padding:0 4px">Conexiones externas</div>
-  <details class="drawerConnBox" id="drawerVestaConnBox">
-   <summary><span>🔌 Vesta</span><span id="vestaConnBadge" style="font-size:10.5px;color:var(--muted)">Desconectado</span></summary>
-   <div class="drawerConnBody">
-    <div id="vestaConnStatus" style="font-size:11.5px;color:var(--muted)">Desconectado. Iniciá sesión con tu usuario de Vesta.</div>
-    <div id="vestaLoginForm" style="display:grid;gap:6px">
-     <input id="vestaLoginUser" placeholder="Usuario Vesta" autocomplete="off">
-     <input id="vestaLoginPass" type="password" placeholder="Contraseña" autocomplete="off">
-     <button type="button" class="sm" id="vestaLoginBtn">Conectar Vesta</button>
-    </div>
-    <div id="vestaConnectedActions" style="display:none;gap:6px;flex-direction:column">
-     <button type="button" class="secondary sm" id="vestaRefreshBtn">↻ Actualizar Vesta</button>
-     <button type="button" class="secondary sm" id="vestaExportExcelBtn">↓ Exportar Excel oficial</button>
-     <button type="button" class="secondary sm" id="vestaLogoutBtn">Desconectar Vesta</button>
-    </div>
-   </div>
-  </details>
-  <details class="drawerConnBox" id="drawerAcgmConnBox">
-   <summary><span>🔌 Pago a proveedores</span><span id="acgmConnBadge" style="font-size:10.5px;color:var(--muted)">Desconectado</span></summary>
-   <div class="drawerConnBody">
-    <div id="acgmConnStatus" style="font-size:11.5px;color:var(--muted)">Desconectado. Iniciá sesión con tu usuario de Pago a proveedores.</div>
-    <div id="acgmLoginForm" style="display:grid;gap:6px">
-     <input id="acgmLoginUser" placeholder="Usuario o Email ACGM" autocomplete="off">
-     <input id="acgmLoginPass" type="password" placeholder="Contraseña" autocomplete="off">
-     <button type="button" class="sm" id="acgmLoginBtn">Conectar ACGM</button>
-    </div>
-    <div id="acgmConnectedActions" style="display:none;gap:6px;flex-direction:column">
-     <button type="button" class="secondary sm" id="acgmRefreshBtn">↻ Actualizar ACGM</button>
-     <button type="button" class="secondary sm" id="acgmLogoutBtn">Desconectar ACGM</button>
-    </div>
-   </div>
-  </details>
+  <button type="button" class="sideDrawerItem" id="drawerOpenConexionesBtn">
+   <span class="sideDrawerItemLeft"><span>🔌</span><span>Conexiones</span></span>
+   <span id="drawerConnSummaryBadge" style="font-size:11px;font-weight:700;color:var(--muted)">0/2</span>
+  </button>
  </div>
 
  <div class="sideDrawerFoot">
@@ -1984,6 +1956,49 @@ input::placeholder{color:#9aa8ad}
    <button id="photoSubtitleConfirmBtn">Subir fotografía</button>
   </div>
   <p id="photoSubtitleError" class="error"></p>
+ </div>
+</div>
+
+<div id="conexionesModal" class="overlay">
+ <div class="dialog" style="max-width:560px">
+  <button class="secondary closeDialog" data-close="conexionesModal">Cerrar</button>
+  <h2>🔌 Conexiones externas</h2>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Guardá tus credenciales una sola vez. La sesión se mantendrá activa y se reconectará automáticamente en cualquier dispositivo.</p>
+
+  <div class="card" style="padding:14px;margin-bottom:12px">
+   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+    <strong style="font-size:14px">Vesta</strong>
+    <span id="vestaConnBadge" style="font-size:11.5px;font-weight:700;color:var(--muted)">Desconectado</span>
+   </div>
+   <div id="vestaConnStatus" style="font-size:12px;color:var(--muted);margin-bottom:10px">Desconectado. Iniciá sesión con tu usuario de Vesta.</div>
+   <div id="vestaLoginForm" style="display:grid;gap:8px">
+    <input id="vestaLoginUser" placeholder="Usuario Vesta" autocomplete="off">
+    <input id="vestaLoginPass" type="password" placeholder="Contraseña Vesta" autocomplete="off">
+    <button type="button" class="sm" id="vestaLoginBtn">Guardar y conectar Vesta</button>
+   </div>
+   <div id="vestaConnectedActions" style="display:none;gap:8px;flex-wrap:wrap">
+    <button type="button" class="secondary sm" id="vestaRefreshBtn">↻ Actualizar Vesta</button>
+    <button type="button" class="secondary sm" id="vestaExportExcelBtn">↓ Exportar Excel oficial</button>
+    <button type="button" class="danger sm" id="vestaLogoutBtn" style="margin-left:auto">Desconectar</button>
+   </div>
+  </div>
+
+  <div class="card" style="padding:14px;margin-bottom:0">
+   <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+    <strong style="font-size:14px">Pago a proveedores (ACGM)</strong>
+    <span id="acgmConnBadge" style="font-size:11.5px;font-weight:700;color:var(--muted)">Desconectado</span>
+   </div>
+   <div id="acgmConnStatus" style="font-size:12px;color:var(--muted);margin-bottom:10px">Desconectado. Iniciá sesión con tu usuario de Pago a proveedores.</div>
+   <div id="acgmLoginForm" style="display:grid;gap:8px">
+    <input id="acgmLoginUser" placeholder="Usuario o Email ACGM" autocomplete="off">
+    <input id="acgmLoginPass" type="password" placeholder="Contraseña ACGM" autocomplete="off">
+    <button type="button" class="sm" id="acgmLoginBtn">Guardar y conectar ACGM</button>
+   </div>
+   <div id="acgmConnectedActions" style="display:none;gap:8px;flex-wrap:wrap">
+    <button type="button" class="secondary sm" id="acgmRefreshBtn">↻ Actualizar ACGM</button>
+    <button type="button" class="danger sm" id="acgmLogoutBtn" style="margin-left:auto">Desconectar</button>
+   </div>
+  </div>
  </div>
 </div>
 
@@ -3482,7 +3497,7 @@ async function loadData(opts={}){
    if(navigator.onLine){
     const bgTasks=[processSyncQueues(false)];
     if(canManageCatalog()){
-     bgTasks.push(refreshPendingPrealtasBadge(),refreshPlannerBadge());
+     bgTasks.push(refreshPendingPrealtasBadge(),refreshPlannerBadge(),autoConnectExternalSystems());
     }
     Promise.allSettled(bgTasks);
    }
@@ -9607,6 +9622,134 @@ function saveVestaSession(sess){
  }catch{}
 }
 
+const EXT_CREDS_CACHE={};
+let extAutoConnectStarted=false;
+
+function updateDrawerConnSummary(){
+ const badge=$('drawerConnSummaryBadge');
+ if(!badge)return;
+ const vOk=!!vestaSession?.accessToken;
+ const aOk=!!(typeof acgmSession!=='undefined' && (acgmSession?.cookie || acgmSession?.token));
+ const cnt=(vOk?1:0)+(aOk?1:0);
+ badge.textContent=`${cnt}/2`;
+ badge.style.color=cnt===2?'var(--accent2)':(cnt===1?'var(--warn)':'var(--muted)');
+}
+
+async function saveExternalCreds(sistema,usuario,password){
+ if(!sistema||!usuario||!password)return;
+ EXT_CREDS_CACHE[sistema]={usuario,password};
+ try{localStorage.setItem(`hotelito_ext_creds_${sistema}`,JSON.stringify({usuario,password}));}catch{}
+ if(sb && canManageCatalog() && navigator.onLine){
+  try{
+   await sb.from('conexiones_externas').upsert({
+    sistema,
+    usuario,
+    password,
+    actualizado_por:currentUser?.id||null,
+    actualizado_en:new Date().toISOString()
+   },{onConflict:'sistema'});
+  }catch(e){console.warn('No se pudieron guardar credenciales en Supabase:',e);}
+ }
+}
+
+async function deleteExternalCreds(sistema){
+ delete EXT_CREDS_CACHE[sistema];
+ try{localStorage.removeItem(`hotelito_ext_creds_${sistema}`);}catch{}
+ if(sb && canManageCatalog() && navigator.onLine){
+  try{await sb.from('conexiones_externas').delete().eq('sistema',sistema);}catch{}
+ }
+}
+
+async function fetchExternalCreds(sistema){
+ if(EXT_CREDS_CACHE[sistema]?.usuario && EXT_CREDS_CACHE[sistema]?.password){
+  return EXT_CREDS_CACHE[sistema];
+ }
+ if(sb && canManageCatalog() && navigator.onLine){
+  try{
+   const {data,error}=await sb.from('conexiones_externas')
+    .select('usuario,password')
+    .eq('sistema',sistema)
+    .maybeSingle();
+   if(!error && data?.usuario && data?.password){
+    EXT_CREDS_CACHE[sistema]={usuario:data.usuario,password:data.password};
+    try{localStorage.setItem(`hotelito_ext_creds_${sistema}`,JSON.stringify(EXT_CREDS_CACHE[sistema]));}catch{}
+    return EXT_CREDS_CACHE[sistema];
+   }
+  }catch{}
+ }
+ try{
+  const raw=localStorage.getItem(`hotelito_ext_creds_${sistema}`);
+  if(raw){
+   const parsed=JSON.parse(raw);
+   if(parsed?.usuario && parsed?.password){
+    EXT_CREDS_CACHE[sistema]=parsed;
+    return parsed;
+   }
+  }
+ }catch{}
+ return null;
+}
+
+async function vestaSilentRelogin(){
+ const creds=await fetchExternalCreds('vesta');
+ if(!creds)return false;
+ try{
+  const res=await fetch(`${VESTA_API_URL}/auth/login`,{
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({login:creds.usuario,password:creds.password})
+  });
+  const json=await res.json().catch(()=>({}));
+  if(!res.ok)return false;
+  const d=json.data||json;
+  if(!d.accessToken)return false;
+  saveVestaSession({accessToken:d.accessToken,refreshToken:d.refreshToken||null,user:d.user||{login:creds.usuario}});
+  updateVestaAuthUI();
+  return true;
+ }catch{return false;}
+}
+
+async function acgmSilentRelogin(){
+ const creds=await fetchExternalCreds('acgm');
+ if(!creds)return false;
+ try{
+  const res=await fetch(ACGM_PROXY_URL,{
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({action:'login',payload:{usuarioOrEmail:creds.usuario,password:creds.password}})
+  });
+  const json=await res.json().catch(()=>({}));
+  if(!res.ok || !json.ok || (!json.cookie && !json.token))return false;
+  saveAcgmSession({cookie:json.cookie||'',token:json.token||'',user:json.user||{usuario:creds.usuario}});
+  updateAcgmAuthUI();
+  return true;
+ }catch{return false;}
+}
+
+async function autoConnectExternalSystems(){
+ if(!canManageCatalog() || !navigator.onLine || extAutoConnectStarted)return;
+ extAutoConnectStarted=true;
+ try{
+  loadVestaSession();
+  loadAcgmSession();
+  const tasks=[];
+  if(!vestaSession?.accessToken)tasks.push(vestaSilentRelogin());
+  if(!acgmSession?.cookie && !acgmSession?.token)tasks.push(acgmSilentRelogin());
+  if(tasks.length)await Promise.allSettled(tasks);
+ }catch{}
+ updateDrawerConnSummary();
+}
+
+async function openConexionesModal(){
+ closeSideDrawer();
+ updateVestaAuthUI();
+ updateAcgmAuthUI();
+ show('conexionesModal');
+ const [vc,ac]=await Promise.all([fetchExternalCreds('vesta'),fetchExternalCreds('acgm')]);
+ if(vc?.usuario && $('vestaLoginUser') && !$('vestaLoginUser').value)$('vestaLoginUser').value=vc.usuario;
+ if(ac?.usuario && $('acgmLoginUser') && !$('acgmLoginUser').value)$('acgmLoginUser').value=ac.usuario;
+}
+
 function updateVestaAuthUI(){
  const connected=!!vestaSession?.accessToken;
  const hasOffline=(typeof getOfflineVestaRows==='function') && getOfflineVestaRows().length>0;
@@ -9628,6 +9771,7 @@ function updateVestaAuthUI(){
  }else{
   $('vestaConnStatus').textContent='Desconectado. Iniciá sesión con tu usuario Auditor de Vesta.';
  }
+ updateDrawerConnSummary();
 }
 
 function showVestaError(msg){
@@ -9643,6 +9787,7 @@ async function vestaLogin(){
  showVestaError('');
  if(!login||!password){
   showVestaError('Ingresá usuario y contraseña de Vesta.');
+  alert('Ingresá usuario y contraseña de Vesta.');
   return;
  }
  const btn=$('vestaLoginBtn');
@@ -9658,19 +9803,22 @@ async function vestaLogin(){
   const d=json.data||json;
   if(!d.accessToken)throw new Error('Vesta no devolvió un accessToken válido.');
   saveVestaSession({accessToken:d.accessToken,refreshToken:d.refreshToken||null,user:d.user||{login}});
+  await saveExternalCreds('vesta',login,password);
   $('vestaLoginPass').value='';
   updateVestaAuthUI();
   await loadVestaRecepciones();
  }catch(e){
   showVestaError('No se pudo conectar a Vesta: '+(e.message||e));
+  alert('No se pudo conectar a Vesta: '+(e.message||e));
  }finally{
   btn.disabled=false;
  }
 }
 
-function vestaLogout(){
+function vestaLogout(clearSaved=true){
  saveVestaSession(null);
  vestaRecepcionesRaw=[];
+ if(clearSaved)deleteExternalCreds('vesta');
  updateVestaAuthUI();
  showVestaError('');
 }
@@ -9707,14 +9855,17 @@ async function vestaRefreshSession(){
 }
 
 async function vestaFetch(path,options={},retry=true){
- if(!vestaSession?.accessToken)throw new Error('Sesión de Vesta no iniciada.');
+ if(!vestaSession?.accessToken){
+  const relogged=retry?(await vestaSilentRelogin()):false;
+  if(!relogged)throw new Error('Sesión de Vesta no iniciada.');
+ }
  const headers={...(options.headers||{}),'Authorization':`Bearer ${vestaSession.accessToken}`};
  const res=await fetch(`${VESTA_API_URL}${path}`,{...options,headers});
- if(res.status===401 && retry && vestaSession.refreshToken){
-  const ok=await vestaRefreshSession();
+ if(res.status===401 && retry){
+  const ok=(vestaSession?.refreshToken && await vestaRefreshSession()) || (await vestaSilentRelogin());
   if(ok)return vestaFetch(path,options,false);
-  vestaLogout();
-  throw new Error('Tu sesión en Vesta expiró. Volvé a iniciar sesión.');
+  vestaLogout(false);
+  throw new Error('Tu sesión en Vesta expiró. Volvé a iniciar sesión desde Conexiones.');
  }
  return res;
 }
@@ -10375,16 +10526,9 @@ $('tabMovimientos').addEventListener('click',()=>switchView('movimientos'));
 $('drawerTabMovimientos').addEventListener('click',()=>switchView('movimientos'));
 $('tabCompras').addEventListener('click',()=>switchView('compras'));
 $('drawerTabCompras').addEventListener('click',()=>switchView('compras'));
-$('openVestaDrawerBtn').addEventListener('click',()=>{
- openSideDrawer();
- const b=$('drawerVestaConnBox');
- if(b){b.open=true;setTimeout(()=>$('vestaLoginUser')?.focus(),120);}
-});
-$('openAcgmDrawerBtn').addEventListener('click',()=>{
- openSideDrawer();
- const b=$('drawerAcgmConnBox');
- if(b){b.open=true;setTimeout(()=>$('acgmLoginUser')?.focus(),120);}
-});
+if($('drawerOpenConexionesBtn'))$('drawerOpenConexionesBtn').addEventListener('click',openConexionesModal);
+$('openVestaDrawerBtn').addEventListener('click',openConexionesModal);
+$('openAcgmDrawerBtn').addEventListener('click',openConexionesModal);
 $('vestaLoginBtn').addEventListener('click',vestaLogin);
 $('vestaLoginPass').addEventListener('keydown',e=>{if(e.key==='Enter')vestaLogin();});
 $('vestaLogoutBtn').addEventListener('click',vestaLogout);
@@ -10505,21 +10649,24 @@ async function acgmLogin(){
    throw new Error('ACGM inició sesión pero no devolvió cookie ni token de sesión.');
   }
   saveAcgmSession({cookie:json.cookie||'',token:json.token||'',user:json.user||{usuario:usuarioOrEmail}});
+  await saveExternalCreds('acgm',usuarioOrEmail,password);
   $('acgmLoginPass').value='';
   updateAcgmAuthUI();
   await loadAcgmFacturas();
  }catch(e){
   showAcgmError('No se pudo conectar a ACGM: '+(e.message||e));
+  alert('No se pudo conectar a ACGM: '+(e.message||e));
  }finally{
   btn.disabled=false;
  }
 }
 
-function acgmLogout(){
+function acgmLogout(clearSaved=true){
  saveAcgmSession(null);
  acgmFacturasRaw=[];
  acgmDetailCache={};
  acgmTotalServer=0;
+ if(clearSaved)deleteExternalCreds('acgm');
  updateAcgmAuthUI();
  showAcgmError('');
 }
@@ -10598,10 +10745,10 @@ async function acgmProxyGet(path,query,retry=true){
   });
  }
  if((res.status===401 || json.status===401) && retry){
-  const ok=await acgmRefreshSession();
+  const ok=(await acgmRefreshSession()) || (await acgmSilentRelogin());
   if(ok)return acgmProxyGet(path,query,false);
-  acgmLogout();
-  throw new Error('Tu sesión en ACGM expiró. Volvé a iniciar sesión.');
+  acgmLogout(false);
+  throw new Error('Tu sesión en ACGM expiró. Volvé a iniciar sesión desde Conexiones.');
  }
  if(!res.ok || !json.ok){
   const msg=json?.data?.message||json?.error||`Error HTTP ${json.status||res.status}`;
