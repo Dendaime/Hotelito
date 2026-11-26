@@ -822,40 +822,6 @@ input::placeholder{color:#9aa8ad}
     </button>
    </div>
    <div id="recuentosListPanel">
-    <div class="card mobileCollapsed" id="newRecuentoCard">
-     <h2 class="desktopOnlyTitle">Nuevo recuento físico</h2>
-     <button type="button" class="newRecCollapseToggle" id="toggleNewRecCardBtn">
-      <span>+ Nuevo recuento físico</span>
-      <span id="toggleNewRecCardIcon">▾</span>
-     </button>
-     <p style="margin-top:8px">Creá un inventario independiente (opcionalmente con un recuento de referencia para comparar cantidades al instante). Funciona incluso sin conexión.</p>
-     <div class="formGrid">
-      <div>
-       <label for="recNombre">Nombre del recuento *</label>
-       <input id="recNombre" maxlength="160" placeholder="Ej. Auditoría Noviembre 2026 - Hotel Purmamarca">
-      </div>
-      <div>
-       <label for="recResponsable">Auditor / Responsable *</label>
-       <input id="recResponsable" maxlength="120" placeholder="Nombre y apellido del auditor">
-      </div>
-      <div>
-       <label for="recTipo">Tipo de recuento *</label>
-       <select id="recTipo">
-        <option value="bienes_uso">Bienes de uso</option>
-        <option value="insumos_preelaborados">Insumos / Pre-elaborados</option>
-       </select>
-      </div>
-      <div>
-       <label for="recReferenciaSelect">Recuento de referencia (opcional)</label>
-       <select id="recReferenciaSelect">
-        <option value="">Sin referencia</option>
-       </select>
-      </div>
-      <button id="createRecuentoBtn">+ Crear recuento</button>
-     </div>
-     <div id="recCreateMsg" class="error" style="margin-top:8px"></div>
-    </div>
-
     <div class="toolbar">
      <input id="recSearch" style="flex:1;min-width:220px" placeholder="Buscar recuento por nombre o responsable…">
      <select id="recTipoFilter">
@@ -871,7 +837,7 @@ input::placeholder{color:#9aa8ad}
      </select>
      <button id="consolidateSelectedBtn" disabled>∑ Consolidar abiertos (0)</button>
      <button class="secondary" id="openCompareRecuentosBtn">⇄ Comparar recuentos</button>
-     <button class="secondary" id="refreshRecuentos">Actualizar lista</button>
+     <button id="openNewRecuentoModalBtn">+ Nuevo recuento</button>
     </div>
 
     <div class="meta">
@@ -1995,6 +1961,42 @@ input::placeholder{color:#9aa8ad}
    <div id="acgmConnectedActions" style="display:none;gap:8px;flex-wrap:wrap;justify-content:flex-end">
     <button type="button" class="danger sm" id="acgmLogoutBtn">Desconectar</button>
    </div>
+  </div>
+ </div>
+</div>
+
+<div id="newRecuentoModal" class="overlay">
+ <div class="dialog" style="max-width:520px">
+  <button class="secondary closeDialog" data-close="newRecuentoModal">Cerrar</button>
+  <h2>Nuevo recuento físico</h2>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Creá un inventario independiente (opcionalmente con un recuento de referencia para comparar cantidades al instante). Funciona incluso sin conexión.</p>
+  <div style="display:grid;gap:10px">
+   <div>
+    <label for="recNombre">Nombre del recuento *</label>
+    <input id="recNombre" maxlength="160" placeholder="Ej. Auditoría Noviembre 2026 - Hotel Purmamarca">
+   </div>
+   <div>
+    <label for="recResponsable">Auditor / Responsable *</label>
+    <input id="recResponsable" maxlength="120" placeholder="Nombre y apellido del auditor">
+   </div>
+   <div>
+    <label for="recTipo">Tipo de recuento *</label>
+    <select id="recTipo">
+     <option value="bienes_uso">Bienes de uso</option>
+     <option value="insumos_preelaborados">Insumos / Pre-elaborados</option>
+    </select>
+   </div>
+   <div>
+    <label for="recReferenciaSelect">Recuento de referencia (opcional)</label>
+    <select id="recReferenciaSelect">
+     <option value="">Sin referencia</option>
+    </select>
+   </div>
+  </div>
+  <div id="recCreateMsg" class="error" style="margin-top:8px"></div>
+  <div class="dialogActions">
+   <button class="secondary" data-close="newRecuentoModal">Cancelar</button>
+   <button id="createRecuentoBtn">+ Crear recuento</button>
   </div>
  </div>
 </div>
@@ -4927,6 +4929,7 @@ async function createRecuento(){
 
   $('recNombre').value='';
   if($('recReferenciaSelect'))$('recReferenciaSelect').value='';
+  hide('newRecuentoModal');
   await loadRecuentos();
   await openRecuentoWork(newRecObj);
 
@@ -8808,15 +8811,21 @@ $('drawerOpenSyncBtn').addEventListener('click',()=>{
 $('mobileCatFilterBtn').addEventListener('click',()=>openColumnFilterModal('categoria'));
 $('mobileStateFilterBtn').addEventListener('click',()=>openColumnFilterModal('estado'));
 
-$('toggleNewRecCardBtn').addEventListener('click',()=>{
+if($('openNewRecuentoModalBtn'))$('openNewRecuentoModalBtn').addEventListener('click',()=>{
+ $('recCreateMsg').textContent='';
+ show('newRecuentoModal');
+ setTimeout(()=>$('recNombre')?.focus(),50);
+});
+if($('toggleNewRecCardBtn'))$('toggleNewRecCardBtn').addEventListener('click',()=>{
  const card=$('newRecuentoCard');
+ if(!card)return;
  const collapsed=card.classList.toggle('mobileCollapsed');
  $('toggleNewRecCardIcon').textContent=collapsed?'▾':'▴';
  if(!collapsed)setTimeout(()=>$('recNombre').focus(),40);
 });
 
 $('createRecuentoBtn').addEventListener('click',createRecuento);
-$('refreshRecuentos').addEventListener('click',loadRecuentos);
+if($('refreshRecuentos'))$('refreshRecuentos').addEventListener('click',loadRecuentos);
 $('recSearch').addEventListener('input',renderRecuentos);
 $('recEstadoFilter').addEventListener('change',renderRecuentos);
 if($('recTipoFilter'))$('recTipoFilter').addEventListener('change',renderRecuentos);
