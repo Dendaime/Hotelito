@@ -3891,14 +3891,22 @@ async function showDetail(a){
     <button id="editSelected">Modificar datos</button>
     <button class="secondary" id="removePhoto">Quitar fotos</button>
     <button class="danger" id="deleteSelected">Eliminar</button>
-    <button class="secondary" id="photoSelected" style="margin-left:auto">${photoBtnLabel}</button>
+    <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+     <button type="button" class="secondary" id="pastePhotoSelected" title="Pegar imagen desde el portapapeles (o Ctrl+V)">📋 Pegar</button>
+     <button class="secondary" id="photoSelected">${photoBtnLabel}</button>
+    </div>
    `
    : `
     <button type="button" class="secondary" id="toggleObsBtn">${obsBtnLabel}</button>
-    <button class="secondary" id="photoSelected" style="margin-left:auto">${photoBtnLabel}</button>
+    <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+     <button type="button" class="secondary" id="pastePhotoSelected" title="Pegar imagen desde el portapapeles (o Ctrl+V)">📋 Pegar</button>
+     <button class="secondary" id="photoSelected">${photoBtnLabel}</button>
+    </div>
    `;
 
   $('detailFields').appendChild(box);
+
+  if($('pastePhotoSelected'))$('pastePhotoSelected').onclick=()=>pasteArticlePhotoFromClipboard();
 
   if($('toggleObsBtn')){
    $('toggleObsBtn').onclick=()=>{
@@ -9657,12 +9665,8 @@ function clearPendingSinglePhoto(){
  if(prev){prev.src='';prev.style.display='none';}
 }
 
-single.onchange=()=>{
- const f=single.files[0];
- single.value='';
-
+function openSinglePhotoSubtitleModal(f){
  if(!f||!selectedArticle)return;
-
  clearPendingSinglePhoto();
  pendingSinglePhotoFile=f;
  pendingSinglePhotoPreviewUrl=URL.createObjectURL(f);
@@ -9676,6 +9680,54 @@ single.onchange=()=>{
  $('photoSubtitleConfirmBtn').disabled=false;
  show('photoSubtitleModal');
  setTimeout(()=>$('photoSubtitleInput').focus(),50);
+}
+
+async function pasteArticlePhotoFromClipboard(){
+ if(!isEditor||!selectedArticle)return;
+ if(!navigator.clipboard || !navigator.clipboard.read){
+  alert('Tu navegador no permite leer el portapapeles desde el botón. Probá presionando Ctrl+V (o Cmd+V) directamente.');
+  return;
+ }
+ try{
+  const items=await navigator.clipboard.read();
+  for(const item of items){
+   const imgType=item.types.find(t=>t.startsWith('image/'));
+   if(imgType){
+    const blob=await item.getType(imgType);
+    const ext=imgType.includes('png')?'png':(imgType.includes('webp')?'webp':'jpg');
+    const file=new File([blob],`${selectedArticle.codigo}.${ext}`,{type:imgType});
+    openSinglePhotoSubtitleModal(file);
+    return;
+   }
+  }
+  alert('No se encontró ninguna imagen en el portapapeles. Copiá una imagen primero y volvé a intentar.');
+ }catch(e){
+  alert('No se pudo leer el portapapeles. Asegurate de otorgar permiso o presioná Ctrl+V directamente.');
+ }
+}
+
+document.addEventListener('paste',e=>{
+ if(!isEditor||!selectedArticle)return;
+ const modalOpen=$('modal')?.classList.contains('show') || $('photoSubtitleModal')?.classList.contains('show');
+ if(!modalOpen)return;
+ const items=e.clipboardData?.items;
+ if(!items)return;
+ for(const item of items){
+  if(item.type && item.type.startsWith('image/')){
+   const file=item.getAsFile();
+   if(file){
+    e.preventDefault();
+    openSinglePhotoSubtitleModal(file);
+    return;
+   }
+  }
+ }
+});
+
+single.onchange=()=>{
+ const f=single.files[0];
+ single.value='';
+ openSinglePhotoSubtitleModal(f);
 };
 
 $('photoSubtitleConfirmBtn').onclick=async()=>{
