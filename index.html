@@ -801,7 +801,7 @@ input::placeholder{color:#9aa8ad}
 
    <div class="toolbar">
     <input id="search" placeholder="Buscar por código, descripción o categoría…">
-    <button class="secondary" id="refresh">Actualizar</button>
+    <button class="secondary" id="refresh">Limpiar</button>
     <button id="newArticle" hidden>+ Nuevo artículo</button>
     <div class="dropdown" id="loadPhotosWrap" hidden>
      <button type="button" class="secondary" id="loadPhotosMenuBtn">Cargas ▾</button>
@@ -3879,29 +3879,27 @@ async function showDetail(a){
   const box=document.createElement('div');
   box.id='adminDetailActions';
   box.className='adminActions';
-  box.style.alignItems='center';
-  box.style.marginTop='12px';
+  box.style.display='grid';
+  box.style.gridTemplateColumns='repeat(3,minmax(0,1fr))';
+  box.style.gap='8px';
+  box.style.marginTop='14px';
 
-  const obsBtnLabel=obsVal?'Editar observación':'Agregar observación';
-  const photoBtnLabel=photoState(a)==='yes'?'Agregar fotografía':'Cargar fotografía';
+  const obsBtnLabel=obsVal?'Editar observación':'Observación';
+  const photoBtnLabel=photoState(a)==='yes'?'📷 Agregar foto':'📷 Cargar foto';
 
   box.innerHTML=canCat
    ? `
     <button type="button" class="secondary" id="toggleObsBtn">${obsBtnLabel}</button>
     <button id="editSelected">Modificar datos</button>
-    <button class="secondary" id="removePhoto">Quitar fotos</button>
     <button class="danger" id="deleteSelected">Eliminar</button>
-    <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
-     <button type="button" class="secondary" id="pastePhotoSelected" title="Pegar imagen desde el portapapeles (o Ctrl+V)">📋 Pegar</button>
-     <button class="secondary" id="photoSelected">${photoBtnLabel}</button>
-    </div>
+    <button class="secondary" id="photoSelected">${photoBtnLabel}</button>
+    <button type="button" class="secondary" id="pastePhotoSelected" title="Pegar imagen desde el portapapeles (o Ctrl+V)">📋 Pegar foto</button>
+    <button class="secondary" id="removePhoto">Quitar fotos</button>
    `
    : `
     <button type="button" class="secondary" id="toggleObsBtn">${obsBtnLabel}</button>
-    <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
-     <button type="button" class="secondary" id="pastePhotoSelected" title="Pegar imagen desde el portapapeles (o Ctrl+V)">📋 Pegar</button>
-     <button class="secondary" id="photoSelected">${photoBtnLabel}</button>
-    </div>
+    <button class="secondary" id="photoSelected">${photoBtnLabel}</button>
+    <button type="button" class="secondary" id="pastePhotoSelected" title="Pegar imagen desde el portapapeles (o Ctrl+V)">📋 Pegar foto</button>
    `;
 
   $('detailFields').appendChild(box);
@@ -8542,7 +8540,14 @@ $('modalSyncNowBtn').addEventListener('click',async()=>{
 $('clearBrokenPhotosBtn').addEventListener('click',clearBrokenLocalPhotos);
 
 $('connect').addEventListener('click',connect);
-$('refresh').addEventListener('click',loadData);
+$('refresh').addEventListener('click',()=>{
+ $('search').value='';
+ selectedCategories.clear();
+ selectedPhotoStates.clear();
+ page=1;
+ render();
+ $('search').focus();
+});
 $('search').addEventListener('input',()=>{page=1;render()});
 $('prev').addEventListener('click',()=>{page--;render()});
 $('next').addEventListener('click',()=>{page++;render()});
